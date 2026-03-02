@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Plus, Search, Clock, 
+  Plus, Search, Clock, ChevronDown, User,
   Edit3, AlertCircle, ArrowRight, FileText, History, X, Bell,
   Star, Paperclip, Table, Grid,
   Briefcase, CheckCircle, Calendar as CalendarIcon, PlayCircle, Trash2, MoreHorizontal, AlertTriangle
@@ -42,6 +42,40 @@ const InterviewList: React.FC<InterviewListProps> = ({
   const [cancelModalOpen, setCancelModalOpen] = useState(false);
   const [sessionToCancel, setSessionToCancel] = useState<InterviewSession | null>(null);
 
+  // Batch Modal States
+  const [isBatchTimeModalOpen, setIsBatchTimeModalOpen] = useState(false);
+  const [isBatchInterviewerModalOpen, setIsBatchInterviewerModalOpen] = useState(false);
+  const [isBatchRemindModalOpen, setIsBatchRemindModalOpen] = useState(false);
+  const [batchDate, setBatchDate] = useState('');
+  const [batchDeadline, setBatchDeadline] = useState('');
+  const [batchTimeType, setBatchTimeType] = useState<'deadline' | 'scheduled'>('deadline');
+  const [batchInterviewer, setBatchInterviewer] = useState('直属上级');
+
+  const handleBatchRemind = () => {
+      if (selectedIds.size === 0) return;
+      setIsBatchRemindModalOpen(true);
+  };
+
+  const confirmBatchRemind = () => {
+      alert(`已成功发送 ${selectedIds.size} 条催办提醒`);
+      setIsBatchRemindModalOpen(false);
+      setSelectedIds(new Set());
+  };
+
+  const submitBatchTime = () => {
+      // Mock update logic
+      alert(`已批量修改 ${selectedIds.size} 条记录的时间`);
+      setIsBatchTimeModalOpen(false);
+      setSelectedIds(new Set());
+  };
+
+  const submitBatchInterviewer = () => {
+      // Mock update logic
+      alert(`已批量修改 ${selectedIds.size} 条记录的面谈官为: ${batchInterviewer}`);
+      setIsBatchInterviewerModalOpen(false);
+      setSelectedIds(new Set());
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
       const handleClickOutside = () => setOpenActionId(null);
@@ -49,13 +83,7 @@ const InterviewList: React.FC<InterviewListProps> = ({
       return () => window.removeEventListener('click', handleClickOutside);
   }, []);
 
-  // --- Statistics Calculation ---
-  const stats = {
-      total: sessions.length,
-      completed: sessions.filter(s => s.status === Status.Completed).length,
-      inProgress: sessions.filter(s => s.status === Status.InProgress || s.status === Status.PendingConfirmation).length,
-      notStarted: sessions.filter(s => s.status === Status.NotStarted).length,
-  };
+
 
   // Filter Logic
   const filteredSessions = sessions.filter(session => {
@@ -141,14 +169,6 @@ const InterviewList: React.FC<InterviewListProps> = ({
       setOpenActionId(null);
       if (window.confirm(`确定要向 ${session.employeeName} 发送催办提醒吗？`)) {
           alert(`已成功发送催办提醒给 ${session.employeeName}`);
-      }
-  };
-
-  const handleBatchRemind = () => {
-      if (selectedIds.size === 0) return;
-      if (window.confirm(`确定要对选中的 ${selectedIds.size} 个任务进行批量催办吗？`)) {
-          alert(`已成功发送 ${selectedIds.size} 条催办提醒`);
-          setSelectedIds(new Set());
       }
   };
 
@@ -415,51 +435,7 @@ const InterviewList: React.FC<InterviewListProps> = ({
   return (
     <div className="p-6 h-full flex flex-col bg-white relative">
       
-      {/* 1. Statistics Panel */}
-      <div className="bg-white border border-gray-200 rounded-xl p-5 mb-6 shadow-sm">
-          {/* Stats Cards Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-gray-50/50 border border-gray-100 rounded-xl p-3.5 flex items-center transition-all hover:bg-gray-50 hover:shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center mr-3 shrink-0">
-                      <Briefcase size={18} />
-                  </div>
-                  <div>
-                      <div className="text-gray-500 text-xs font-medium mb-0.5">任务总数</div>
-                      <div className="text-xl font-bold text-gray-900">{stats.total}</div>
-                  </div>
-              </div>
-              
-              <div className="bg-green-50/30 border border-green-100 rounded-xl p-3.5 flex items-center transition-all hover:bg-green-50/50 hover:shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center mr-3 shrink-0">
-                      <CheckCircle size={18} />
-                  </div>
-                  <div>
-                      <div className="text-gray-500 text-xs font-medium mb-0.5">已完成</div>
-                      <div className="text-xl font-bold text-green-700">{stats.completed}</div>
-                  </div>
-              </div>
 
-              <div className="bg-blue-50/30 border border-blue-100 rounded-xl p-3.5 flex items-center transition-all hover:bg-blue-50/50 hover:shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mr-3 shrink-0">
-                      <PlayCircle size={18} />
-                  </div>
-                  <div>
-                      <div className="text-gray-500 text-xs font-medium mb-0.5">进行中</div>
-                      <div className="text-xl font-bold text-blue-700">{stats.inProgress}</div>
-                  </div>
-              </div>
-
-              <div className="bg-gray-50/50 border border-gray-200 rounded-xl p-3.5 flex items-center transition-all hover:bg-gray-50 hover:shadow-sm">
-                  <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center mr-3 shrink-0">
-                      <CalendarIcon size={18} />
-                  </div>
-                  <div>
-                      <div className="text-gray-500 text-xs font-medium mb-0.5">待开始</div>
-                      <div className="text-xl font-bold text-gray-700">{stats.notStarted}</div>
-                  </div>
-              </div>
-          </div>
-      </div>
 
       {/* Top Header Section */}
       <div className="flex flex-col mb-4">
@@ -488,14 +464,24 @@ const InterviewList: React.FC<InterviewListProps> = ({
 
             {/* Right: Buttons */}
             <div className="flex items-center space-x-3 mr-1">
-                {selectedIds.size > 0 && (
-                    <button 
-                        onClick={handleBatchRemind}
-                        className="px-4 py-1.5 bg-white border border-orange-200 text-orange-600 rounded text-sm font-medium hover:bg-orange-50 transition-colors flex items-center animate-in fade-in"
-                    >
-                        <Bell size={14} className="mr-1.5" /> 批量催办 ({selectedIds.size})
+                <div className="relative group">
+                    <button className={`px-4 py-1.5 bg-white border border-gray-300 rounded text-sm font-medium flex items-center transition-colors shadow-sm ${selectedIds.size === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-700 hover:bg-gray-50'}`}>
+                        批量操作 ({selectedIds.size}) <ChevronDown size={14} className="ml-1.5" />
                     </button>
-                )}
+                    {selectedIds.size > 0 && (
+                        <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1 text-sm text-gray-700 hidden group-hover:block animate-in fade-in zoom-in-95">
+                            <button onClick={handleBatchRemind} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center text-orange-600 hover:bg-orange-50">
+                                <Bell size={14} className="mr-2" /> 批量催办
+                            </button>
+                            <button onClick={() => setIsBatchTimeModalOpen(true)} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center">
+                                <CalendarIcon size={14} className="mr-2" /> 批量修改时间
+                            </button>
+                            <button onClick={() => setIsBatchInterviewerModalOpen(true)} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center">
+                                <User size={14} className="mr-2" /> 批量更换面谈官
+                            </button>
+                        </div>
+                    )}
+                </div>
                 <button 
                     onClick={onOpenTemplates}
                     className="px-4 py-1.5 bg-white border border-gray-300 text-gray-600 rounded text-sm font-medium hover:bg-gray-50 hover:text-primary hover:border-primary-300 transition-colors"
@@ -775,6 +761,94 @@ const InterviewList: React.FC<InterviewListProps> = ({
                       >
                           确认取消
                       </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* --- Batch Remind Modal --- */}
+      {isBatchRemindModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+              <div className="bg-white rounded-lg shadow-xl p-6 w-[400px] animate-in zoom-in-95">
+                  <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
+                          <Bell size={20} />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900">批量催办提醒</h3>
+                  </div>
+                  <p className="text-gray-600 mb-6 text-sm leading-relaxed">
+                      您即将向选中的 <span className="font-bold text-gray-900">{selectedIds.size}</span> 位面谈对象发送催办提醒。
+                      <br/>
+                      系统将通过邮件和站内信通知对方尽快完成相关操作。
+                  </p>
+                  <div className="flex justify-end space-x-3">
+                      <button onClick={() => setIsBatchRemindModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">取消</button>
+                      <button onClick={confirmBatchRemind} className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 shadow-sm">确认发送</button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* --- Batch Time Modal --- */}
+      {isBatchTimeModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+              <div className="bg-white rounded-lg shadow-xl p-6 w-[400px] animate-in zoom-in-95">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">批量修改面谈时间</h3>
+                  <div className="space-y-4 mb-6">
+                      <div className="flex space-x-4">
+                          <label className="flex items-center text-sm cursor-pointer">
+                              <input type="radio" checked={batchTimeType === 'deadline'} onChange={() => setBatchTimeType('deadline')} className="mr-2"/> 设置截止时间 (待排期)
+                          </label>
+                          <label className="flex items-center text-sm cursor-pointer">
+                              <input type="radio" checked={batchTimeType === 'scheduled'} onChange={() => setBatchTimeType('scheduled')} className="mr-2"/> 设置具体时间 (已排期)
+                          </label>
+                      </div>
+                      
+                      {batchTimeType === 'deadline' ? (
+                          <input 
+                            type="date" 
+                            className="w-full border border-gray-300 rounded p-2 text-sm"
+                            value={batchDeadline}
+                            onChange={(e) => setBatchDeadline(e.target.value)}
+                          />
+                      ) : (
+                          <input 
+                            type="datetime-local" 
+                            className="w-full border border-gray-300 rounded p-2 text-sm"
+                            value={batchDate}
+                            onChange={(e) => setBatchDate(e.target.value)}
+                          />
+                      )}
+                  </div>
+                  <div className="flex justify-end space-x-3">
+                      <button onClick={() => setIsBatchTimeModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">取消</button>
+                      <button onClick={submitBatchTime} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">确认修改</button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* --- Batch Interviewer Modal --- */}
+      {isBatchInterviewerModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+              <div className="bg-white rounded-lg shadow-xl p-6 w-[400px] animate-in zoom-in-95">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">批量更换面谈官</h3>
+                  <div className="mb-6">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">选择新的面谈官</label>
+                      <select 
+                        className="w-full border border-gray-300 rounded p-2 text-sm"
+                        value={batchInterviewer}
+                        onChange={(e) => setBatchInterviewer(e.target.value)}
+                      >
+                          <option value="直属上级">直属上级</option>
+                          <option value="HRBP">HRBP</option>
+                          <option value="隔级上级">隔级上级</option>
+                          <option value="指定人员">指定人员...</option>
+                      </select>
+                  </div>
+                  <div className="flex justify-end space-x-3">
+                      <button onClick={() => setIsBatchInterviewerModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">取消</button>
+                      <button onClick={submitBatchInterviewer} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">确认更换</button>
                   </div>
               </div>
           </div>
