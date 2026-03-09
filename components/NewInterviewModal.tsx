@@ -19,12 +19,10 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
   initialEmployeeIds = [],
   defaultTopic = '绩效面谈'
 }) => {
-  const [sourceType, setSourceType] = useState<'assessment' | 'independent'>('assessment');
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>(MOCK_TEMPLATES[0].id);
   const [deadline, setDeadline] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
   const [topic, setTopic] = useState(defaultTopic);
-  const [assessmentTask, setAssessmentTask] = useState('2025 Q4 绩效考核');
   const [interviewerRole, setInterviewerRole] = useState('manager');
   
   // New Configuration States
@@ -46,34 +44,15 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
     { value: 'skip_manager', label: '隔级上级' }
   ];
 
-  const ASSESSMENT_TASKS = [
-      '2025 Q4 绩效考核',
-      '2025 Q3 绩效考核',
-      '2025 Q2 绩效考核',
-      '2025 Q1 绩效考核',
-      '2025 试用期评估'
-  ];
-
   useEffect(() => {
     if (isOpen) {
-      setSourceType('assessment'); // Default to assessment
       setSelectedEmployeeIds(initialEmployeeIds);
       setTopic(defaultTopic);
       setInterviewerRole('manager');
-      setAssessmentTask('2025 Q4 绩效考核');
       setRequireConfirmation(true);
       setSignatureType('confirmation');
     } 
   }, [isOpen, initialEmployeeIds, defaultTopic]);
-
-  // Auto-update topic when assessment task changes if source is assessment
-  useEffect(() => {
-      if (sourceType === 'assessment' && assessmentTask) {
-          setTopic(`${assessmentTask} 面谈`);
-      } else if (sourceType === 'independent' && topic.includes('考核')) {
-          setTopic('日常辅导面谈');
-      }
-  }, [assessmentTask, sourceType]);
 
   // Resize Logic
   useEffect(() => {
@@ -150,76 +129,39 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
           <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
               <div className="space-y-6 max-w-3xl mx-auto">
                 
-                  {/* 1. Source Type (Interview Context) */}
+                  {/* 1. Topic */}
                   <div className="grid grid-cols-4 items-center gap-4">
                       <label className="text-sm font-medium text-gray-700 text-right">
-                          <span className="text-red-500 mr-1">*</span>面谈背景
+                          <span className="text-red-500 mr-1">*</span>面谈主题
                       </label>
-                      <div className="col-span-3 flex items-center space-x-6">
-                          <label className="flex items-center cursor-pointer group relative">
-                              <input 
-                                type="radio" 
-                                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                                checked={sourceType === 'assessment'}
-                                onChange={() => setSourceType('assessment')}
-                              />
-                              <span className="ml-2 text-sm text-gray-700 flex items-center">
-                                  关联考核任务
-                                  <div className="ml-1 text-gray-400 hover:text-blue-500 transition-colors cursor-help">
-                                      <HelpCircle size={14} />
-                                  </div>
-                              </span>
-                              {/* Tooltip */}
-                              <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-gray-800 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 leading-relaxed font-normal">
-                                  <div className="absolute -top-1 left-6 w-2 h-2 bg-gray-800 transform rotate-45"></div>
-                                  针对已有考核计划发起。系统将自动调取考评数据，面谈记录将归档至对应考核任务中。
-                              </div>
-                          </label>
-
-                          <label className="flex items-center cursor-pointer group relative">
-                              <input 
-                                type="radio" 
-                                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                                checked={sourceType === 'independent'}
-                                onChange={() => setSourceType('independent')}
-                              />
-                              <span className="ml-2 text-sm text-gray-700 flex items-center">
-                                  专项/日常面谈
-                                  <div className="ml-1 text-gray-400 hover:text-blue-500 transition-colors cursor-help">
-                                      <HelpCircle size={14} />
-                                  </div>
-                              </span>
-                              {/* Tooltip */}
-                              <div className="absolute top-full left-0 mt-2 w-64 p-3 bg-gray-800 text-white text-xs rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 leading-relaxed font-normal">
-                                  <div className="absolute -top-1 left-6 w-2 h-2 bg-gray-800 transform rotate-45"></div>
-                                  针对特定事件发起的单次沟通。适用于绩效预警、日常反馈等独立场景。
-                              </div>
-                          </label>
+                      <div className="col-span-3">
+                          <input 
+                              type="text" 
+                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 shadow-sm"
+                              value={topic}
+                              onChange={(e) => setTopic(e.target.value)}
+                              placeholder="请输入面谈名称"
+                          />
                       </div>
                   </div>
 
-                  {/* 2. Assessment Task (Conditional) */}
-                  {sourceType === 'assessment' && (
-                      <div className="grid grid-cols-4 items-center gap-4 animate-in fade-in slide-in-from-top-2">
-                          <label className="text-sm font-medium text-gray-700 text-right">
-                              <span className="text-red-500 mr-1">*</span>关联考核任务
-                          </label>
-                          <div className="col-span-3">
-                              <div className="relative">
-                                <select 
-                                    className="w-full pl-3 pr-8 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-                                    value={assessmentTask}
-                                    onChange={(e) => setAssessmentTask(e.target.value)}
-                                >
-                                    {ASSESSMENT_TASKS.map(task => (
-                                        <option key={task} value={task}>{task}</option>
-                                    ))}
-                                </select>
-                                <Layers className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={16} />
-                              </div>
-                          </div>
+                  {/* 2. Template */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                      <label className="text-sm font-medium text-gray-700 text-right">
+                          <span className="text-red-500 mr-1">*</span>面谈模板
+                      </label>
+                      <div className="col-span-3">
+                          <select 
+                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                              value={selectedTemplate}
+                              onChange={(e) => setSelectedTemplate(e.target.value)}
+                          >
+                              {MOCK_TEMPLATES.map(t => (
+                                  <option key={t.id} value={t.id}>{t.name}</option>
+                              ))}
+                          </select>
                       </div>
-                  )}
+                  </div>
 
                   {/* 3. Interview Target */}
                   <div className="grid grid-cols-4 items-start gap-4">
@@ -250,41 +192,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
                       </div>
                   </div>
 
-                  {/* 4. Topic */}
-                  <div className="grid grid-cols-4 items-center gap-4">
-                      <label className="text-sm font-medium text-gray-700 text-right">
-                          <span className="text-red-500 mr-1">*</span>面谈主题
-                      </label>
-                      <div className="col-span-3">
-                          <input 
-                              type="text" 
-                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 shadow-sm"
-                              value={topic}
-                              onChange={(e) => setTopic(e.target.value)}
-                              placeholder="请输入面谈名称"
-                          />
-                      </div>
-                  </div>
-
-                  {/* 5. Template */}
-                  <div className="grid grid-cols-4 items-center gap-4">
-                      <label className="text-sm font-medium text-gray-700 text-right">
-                          <span className="text-red-500 mr-1">*</span>面谈模板
-                      </label>
-                      <div className="col-span-3">
-                          <select 
-                              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
-                              value={selectedTemplate}
-                              onChange={(e) => setSelectedTemplate(e.target.value)}
-                          >
-                              {MOCK_TEMPLATES.map(t => (
-                                  <option key={t.id} value={t.id}>{t.name}</option>
-                              ))}
-                          </select>
-                      </div>
-                  </div>
-
-                  {/* 6. Interviewer */}
+                  {/* 4. Interviewer */}
                   <div className="grid grid-cols-4 items-center gap-4">
                       <label className="text-sm font-medium text-gray-700 text-right">
                           <span className="text-red-500 mr-1">*</span>面谈官
@@ -302,7 +210,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
                       </div>
                   </div>
 
-                  {/* 7. Deadline */}
+                  {/* 5. Deadline */}
                   <div className="grid grid-cols-4 items-center gap-4">
                       <label className="text-sm font-medium text-gray-700 text-right">
                           <span className="text-red-500 mr-1">*</span>面谈截止时间
@@ -320,7 +228,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
                       </div>
                   </div>
 
-                  {/* 8. Confirmation Config */}
+                  {/* 6. Confirmation Config */}
                   <div className="grid grid-cols-4 items-start gap-4 pt-2">
                       <label className="text-sm font-medium text-gray-700 text-right pt-1">
                           <span className="text-red-500 mr-1">*</span>是否员工确认
@@ -374,8 +282,6 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
                       templateId: selectedTemplate, 
                       deadline, 
                       topic,
-                      assessmentTask: sourceType === 'assessment' ? assessmentTask : undefined, 
-                      sourceType,
                       interviewerRole,
                       requireConfirmation,
                       signatureType,
@@ -409,7 +315,6 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
             setIsSelectorOpen(false);
         }}
         initialSelectedIds={selectedEmployeeIds}
-        filterTask={sourceType === 'assessment' ? assessmentTask : undefined}
       />
     </>
   );

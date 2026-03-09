@@ -8,10 +8,9 @@ interface EmployeeSelectorModalProps {
   onClose: () => void;
   onSelect: (employeeIds: string[]) => void;
   initialSelectedIds?: string[];
-  filterTask?: string; // New Prop
 }
 
-const EmployeeSelectorModal: React.FC<EmployeeSelectorModalProps> = ({ isOpen, onClose, onSelect, initialSelectedIds = [], filterTask }) => {
+const EmployeeSelectorModal: React.FC<EmployeeSelectorModalProps> = ({ isOpen, onClose, onSelect, initialSelectedIds = [] }) => {
   const [searchTerm, setSearchTerm] = useState('');
   // We track selected Record IDs internally to distinguish between different assessments for the same person
   const [selectedRecordIds, setSelectedRecordIds] = useState<Set<string>>(new Set());
@@ -46,27 +45,16 @@ const EmployeeSelectorModal: React.FC<EmployeeSelectorModalProps> = ({ isOpen, o
       setMinScore('');
       setMaxScore('');
       
-      // If filterTask is provided (e.g. from NewInterviewModal), use it
-      if (filterTask) {
-          setSelectedTask(filterTask);
-          // Try to derive period from task string for consistency (optional)
-          const derivedPeriod = allPeriods.find(p => filterTask.includes(p));
-          if (derivedPeriod) setSelectedPeriod(derivedPeriod);
-      } else {
-          setSelectedTask('');
-          if(allPeriods.length > 0) setSelectedPeriod(allPeriods[0]);
-      }
+      setSelectedTask('');
+      if(allPeriods.length > 0) setSelectedPeriod(allPeriods[0]);
 
       // Restore selections
       const initialRecords = new Set<string>();
       if (initialSelectedIds.length > 0) {
           initialSelectedIds.forEach(empId => {
               // Try to find a record for this employee.
-              // If we have a filterTask, use it to narrow down the record.
               // Otherwise pick the latest.
-              const targetPeriod = filterTask 
-                  ? (allPeriods.find(p => filterTask.includes(p)) || allPeriods[0]) 
-                  : (selectedPeriod || allPeriods[0]);
+              const targetPeriod = selectedPeriod || allPeriods[0];
 
               const rec = MOCK_PERFORMANCE_RECORDS.find(r => r.employeeId === empId && r.period === targetPeriod);
               if (rec) initialRecords.add(rec.id);
@@ -74,7 +62,7 @@ const EmployeeSelectorModal: React.FC<EmployeeSelectorModalProps> = ({ isOpen, o
       }
       setSelectedRecordIds(initialRecords);
     }
-  }, [isOpen, initialSelectedIds, filterTask, allPeriods]);
+  }, [isOpen, initialSelectedIds, allPeriods]);
 
   if (!isOpen) return null;
 
@@ -153,7 +141,7 @@ const EmployeeSelectorModal: React.FC<EmployeeSelectorModalProps> = ({ isOpen, o
           <div>
             <h2 className="text-lg font-bold text-gray-800">选择面谈对象</h2>
             <p className="text-sm text-gray-500 mt-0.5">
-                {filterTask ? `当前已锁定任务：${filterTask}` : '请选择需要进行面谈的考核任务。'}
+                请选择需要进行面谈的考核周期。
             </p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -177,8 +165,7 @@ const EmployeeSelectorModal: React.FC<EmployeeSelectorModalProps> = ({ isOpen, o
                         if(derivedPeriod) setSelectedPeriod(derivedPeriod);
                         else if (e.target.value === '') setSelectedPeriod('');
                     }}
-                    disabled={!!filterTask} // Disable if passed from parent
-                    className={`bg-transparent border-none text-gray-700 text-sm focus:ring-0 p-1 cursor-pointer font-medium max-w-[180px] truncate ${filterTask ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    className="bg-transparent border-none text-gray-700 text-sm focus:ring-0 p-1 cursor-pointer font-medium max-w-[180px] truncate"
                  >
                      <option value="">全部任务</option>
                      {allTasks.map(t => (
@@ -194,8 +181,8 @@ const EmployeeSelectorModal: React.FC<EmployeeSelectorModalProps> = ({ isOpen, o
                  <select 
                     value={selectedPeriod}
                     onChange={(e) => setSelectedPeriod(e.target.value)}
-                    disabled={!!selectedTask || !!filterTask} // Usually locked by Task
-                    className="bg-transparent border-none text-gray-700 text-sm focus:ring-0 p-1 cursor-not-allowed font-medium w-24"
+                    disabled={!!selectedTask} // Usually locked by Task
+                    className={`bg-transparent border-none text-gray-700 text-sm focus:ring-0 p-1 font-medium w-24 ${!!selectedTask ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                  >
                      {allPeriods.map(p => (
                          <option key={p} value={p}>{p}</option>

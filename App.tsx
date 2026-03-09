@@ -102,7 +102,7 @@ function App() {
           'skip_manager': '赵总 (隔级上级)'
       }[data.interviewerRole as string] || '张伟';
 
-      const extractedPeriod = data.assessmentTask ? data.assessmentTask.split(' ')[0] + ' ' + data.assessmentTask.split(' ')[1] : '2025 Q4';
+      const extractedPeriod = '2025 Q4';
 
       targetIds.forEach((empId: string) => {
           const emp = MOCK_EMPLOYEES.find(e => e.id === empId);
