@@ -2,10 +2,54 @@
 import { Employee, InterviewSession, InterviewTemplate, Status, InterviewType, PerformanceRecord, AssessmentItem, AssessmentDetail, PerformanceTrend, HistoricalRecord } from './types';
 
 export const MOCK_EMPLOYEES: Employee[] = [
-  { id: '1', name: '李莎', department: '产品部', role: '高级产品经理', avatar: 'https://picsum.photos/id/64/100/100' },
-  { id: '2', name: '王森', department: '销售部', role: '销售总监', avatar: 'https://picsum.photos/id/91/100/100' },
-  { id: '3', name: '张妮', department: '人力资源部', role: 'HRBP', avatar: 'https://picsum.photos/id/177/100/100' },
-  { id: '4', name: '陈飞', department: '云演示组', role: '工程师', avatar: 'https://picsum.photos/id/338/100/100' },
+  { 
+    id: '1', 
+    name: '李莎', 
+    department: '产品部', 
+    role: '高级产品经理', 
+    avatar: 'https://picsum.photos/id/64/100/100',
+    joinDate: '2022-03-15',
+    tenure: '2年',
+    status: '在职',
+    lastInterviewDate: '2025-10-10',
+    lastPerformance: '88.5/A'
+  },
+  { 
+    id: '2', 
+    name: '王森', 
+    department: '销售部', 
+    role: '销售总监', 
+    avatar: 'https://picsum.photos/id/91/100/100',
+    joinDate: '2020-05-20',
+    tenure: '4年',
+    status: '在职',
+    lastInterviewDate: '2025-11-15',
+    lastPerformance: '95.0/S'
+  },
+  { 
+    id: '3', 
+    name: '张妮', 
+    department: '人力资源部', 
+    role: 'HRBP', 
+    avatar: 'https://picsum.photos/id/177/100/100',
+    joinDate: '2023-01-10',
+    tenure: '1年',
+    status: '在职',
+    lastInterviewDate: '2025-09-20',
+    lastPerformance: '78.0/B'
+  },
+  { 
+    id: '4', 
+    name: '陈飞', 
+    department: '云演示组', 
+    role: '工程师', 
+    avatar: 'https://picsum.photos/id/338/100/100',
+    joinDate: '2024-06-01',
+    tenure: '0.5年',
+    status: '在职',
+    lastInterviewDate: '2025-12-05',
+    lastPerformance: '58.0/C'
+  },
 ];
 
 export const MOCK_TEMPLATES: InterviewTemplate[] = [

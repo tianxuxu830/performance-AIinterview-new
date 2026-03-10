@@ -34,6 +34,11 @@ export interface Employee {
   department: string;
   role: string;
   avatar: string;
+  joinDate?: string;
+  tenure?: string;
+  status?: string;
+  lastInterviewDate?: string;
+  lastPerformance?: string;
 }
 
 export type FieldType = 'text' | 'textarea' | 'rating' | 'date' | 'number' | 'attachment' | 'select' | 'graph';

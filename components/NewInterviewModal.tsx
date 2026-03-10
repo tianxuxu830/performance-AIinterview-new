@@ -19,6 +19,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
   initialEmployeeIds = [],
   defaultTopic = '绩效面谈'
 }) => {
+  const [interviewType, setInterviewType] = useState<'assessment' | 'daily'>('assessment');
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>(MOCK_TEMPLATES[0].id);
   const [deadline, setDeadline] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
@@ -46,6 +47,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setInterviewType('assessment');
       setSelectedEmployeeIds(initialEmployeeIds);
       setTopic(defaultTopic);
       setInterviewerRole('manager');
@@ -129,6 +131,34 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
           <div className="flex-1 p-8 overflow-y-auto custom-scrollbar">
               <div className="space-y-6 max-w-3xl mx-auto">
                 
+                  {/* 0. Interview Type */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                      <label className="text-sm font-medium text-gray-700 text-right">
+                          <span className="text-red-500 mr-1">*</span>面谈类型
+                      </label>
+                      <div className="col-span-3 flex items-center space-x-6">
+                          <label className="flex items-center cursor-pointer group relative">
+                              <input 
+                                type="radio" 
+                                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                checked={interviewType === 'assessment'}
+                                onChange={() => setInterviewType('assessment')}
+                              />
+                              <span className="ml-2 text-sm text-gray-700">关联考核面谈</span>
+                          </label>
+
+                          <label className="flex items-center cursor-pointer group relative">
+                              <input 
+                                type="radio" 
+                                className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                                checked={interviewType === 'daily'}
+                                onChange={() => setInterviewType('daily')}
+                              />
+                              <span className="ml-2 text-sm text-gray-700">日常/专项面谈</span>
+                          </label>
+                      </div>
+                  </div>
+
                   {/* 1. Topic */}
                   <div className="grid grid-cols-4 items-center gap-4">
                       <label className="text-sm font-medium text-gray-700 text-right">
@@ -282,6 +312,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
                       templateId: selectedTemplate, 
                       deadline, 
                       topic,
+                      interviewType,
                       interviewerRole,
                       requireConfirmation,
                       signatureType,
@@ -315,6 +346,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
             setIsSelectorOpen(false);
         }}
         initialSelectedIds={selectedEmployeeIds}
+        interviewType={interviewType}
       />
     </>
   );
