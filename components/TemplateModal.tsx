@@ -5,7 +5,7 @@ import {
     Save, Copy, Layout, Square, Columns, 
     MoreHorizontal, Check, AlignLeft, Paperclip, Star, Type,
     Grid, Table, List, Settings, ChevronDown, CheckSquare, GripVertical, Search, Eye,
-    FileUp, FileDown, Loader2
+    FileUp, FileDown, Loader2, Globe
 } from 'lucide-react';
 import { MOCK_TEMPLATES } from '../constants';
 import { InterviewTemplate, TemplateField, TemplateSection, FieldType } from '../types';
@@ -32,6 +32,10 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
   const [templates, setTemplates] = useState<InterviewTemplate[]>(MOCK_TEMPLATES);
   const [searchTerm, setSearchTerm] = useState('');
   
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+  
   // Editor State
   const [isEditing, setIsEditing] = useState(false);
   const [currentTemplate, setCurrentTemplate] = useState<InterviewTemplate | null>(null);
@@ -52,6 +56,13 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
   // Multi-select State for Field Library
   const [selectedLibItems, setSelectedLibItems] = useState<Set<number>>(new Set());
 
+  // Table Drawer State
+  const [activeTableSectionId, setActiveTableSectionId] = useState<string | null>(null);
+  const [isI18nModalOpen, setIsI18nModalOpen] = useState(false);
+  const [currentI18nField, setCurrentI18nField] = useState<string | null>(null);
+  const [isFieldLibraryOpen, setIsFieldLibraryOpen] = useState(false);
+  const [drawerSelectedLibItems, setDrawerSelectedLibItems] = useState<Set<number>>(new Set());
+
   // Drag and Drop State
   const [draggedItem, setDraggedItem] = useState<{sectionId: string, index: number} | null>(null);
 
@@ -70,6 +81,11 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [activeAddSectionId]);
+
+  // Reset pagination on search
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
 
   // --- Actions ---
@@ -611,6 +627,241 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
     );
   };
 
+  const toggleDrawerLibItemSelection = (idx: number) => {
+      const newSet = new Set(drawerSelectedLibItems);
+      if (newSet.has(idx)) {
+          newSet.delete(idx);
+      } else {
+          newSet.add(idx);
+      }
+      setDrawerSelectedLibItems(newSet);
+  };
+
+  const addSelectedFieldsToTable = (sectionId: string) => {
+       if (!currentTemplate || drawerSelectedLibItems.size === 0) return;
+
+       const newFields: TemplateField[] = [];
+       drawerSelectedLibItems.forEach(idx => {
+            const item = FIELD_LIBRARY[idx];
+            newFields.push({
+                id: `f_${Date.now()}_${idx}`,
+                label: item.label,
+                type: item.type as any,
+                required: false,
+                placeholder: item.placeholder,
+                width: 'full'
+            });
+       });
+
+       setCurrentTemplate({
+          ...currentTemplate,
+          sections: currentTemplate.sections.map(s => 
+              s.id === sectionId ? { ...s, fields: [...s.fields, ...newFields] } : s
+          )
+      });
+      setDrawerSelectedLibItems(new Set());
+      setIsFieldLibraryOpen(false);
+  };
+
+  const renderTableDrawer = () => {
+      if (!activeTableSectionId || !currentTemplate) return null;
+      const section = currentTemplate.sections.find(s => s.id === activeTableSectionId);
+      if (!section) return null;
+
+      return (
+          <>
+              <div className="fixed inset-0 bg-black/20 z-[60] transition-opacity" onClick={() => setActiveTableSectionId(null)} />
+              <div className="fixed right-0 top-0 bottom-0 w-[800px] bg-white shadow-2xl z-[70] flex flex-col animate-in slide-in-from-right duration-300">
+                  <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                      <h3 className="text-lg font-bold text-gray-900">编辑表格列 - {section.title}</h3>
+                      <button onClick={() => setActiveTableSectionId(null)} className="p-2 hover:bg-gray-200 rounded-full text-gray-500 transition-colors">
+                          <X size={20} />
+                      </button>
+                  </div>
+                  
+                  <div className="flex-1 overflow-y-auto p-6">
+                      <div className="border border-gray-200 rounded-sm overflow-hidden mb-4">
+                          <table className="w-full text-left text-sm">
+                              <thead className="bg-[#f5f5f5] border-b border-gray-200 text-gray-700 font-medium">
+                                  <tr>
+                                      <th className="p-3 w-10 border-r border-gray-200 text-center"></th>
+                                      <th className="p-3 w-[20%] border-r border-gray-200">字段名称</th>
+                                      <th className="p-3 w-[25%] border-r border-gray-200">属性</th>
+                                      <th className="p-3 w-[25%] border-r border-gray-200">显示名称</th>
+                                      <th className="p-3 w-[25%]">填写提示</th>
+                                  </tr>
+                              </thead>
+                              <tbody>
+                                  {section.fields.map(field => (
+                                      <tr key={field.id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50 group/row">
+                                          <td className="p-3 border-r border-gray-200 text-center text-gray-300">
+                                              <GripVertical size={16} className="cursor-move mx-auto" />
+                                          </td>
+                                          <td className="p-3 border-r border-gray-200 text-gray-700">{field.label}</td>
+                                          <td className="p-3 border-r border-gray-200 text-gray-700">
+                                              {field.type === 'textarea' ? '文本（0~10000字）' : 
+                                               field.type === 'number' ? '数值' : 
+                                               field.type === 'date' ? '日期' : 
+                                               field.type === 'attachment' ? '附件' : field.type}
+                                          </td>
+                                          <td className="p-3 border-r border-gray-200">
+                                              <div className="flex items-center border border-gray-300 rounded overflow-hidden focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                                                  <input 
+                                                      type="text" 
+                                                      value={field.label}
+                                                      onChange={(e) => updateField(section.id, field.id, { label: e.target.value })}
+                                                      className="w-full px-3 py-2 text-sm outline-none bg-transparent"
+                                                  />
+                                                  <button 
+                                                      onClick={() => {
+                                                          setCurrentI18nField(field.id);
+                                                          setIsI18nModalOpen(true);
+                                                      }}
+                                                      className="p-2 text-gray-400 hover:text-blue-500 hover:bg-gray-50 transition-colors border-l border-gray-200"
+                                                      title="多语言设置"
+                                                  >
+                                                      <Globe size={16} />
+                                                  </button>
+                                              </div>
+                                          </td>
+                                          <td className="p-3 relative">
+                                              <div className="flex items-center border border-gray-300 rounded overflow-hidden focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500 transition-all">
+                                                  <input 
+                                                      type="text" 
+                                                      value={field.placeholder || ''}
+                                                      onChange={(e) => updateField(section.id, field.id, { placeholder: e.target.value })}
+                                                      className="w-full px-3 py-2 text-sm outline-none bg-transparent"
+                                                      placeholder="请输入"
+                                                  />
+                                                  <button 
+                                                      onClick={() => {
+                                                          setCurrentI18nField(field.id);
+                                                          setIsI18nModalOpen(true);
+                                                      }}
+                                                      className="p-2 text-gray-400 hover:text-blue-500 hover:bg-gray-50 transition-colors border-l border-gray-200"
+                                                      title="多语言设置"
+                                                  >
+                                                      <Globe size={16} />
+                                                  </button>
+                                              </div>
+                                              <button 
+                                                  onClick={() => removeField(section.id, field.id)}
+                                                  className="absolute right-[-30px] top-1/2 -translate-y-1/2 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors opacity-0 group-hover/row:opacity-100"
+                                              >
+                                                  <Trash2 size={16} />
+                                              </button>
+                                          </td>
+                                      </tr>
+                                  ))}
+                                  {section.fields.length === 0 && (
+                                      <tr>
+                                          <td colSpan={5} className="p-6 text-center text-gray-400">
+                                              暂无列字段，请点击下方添加
+                                          </td>
+                                      </tr>
+                                  )}
+                              </tbody>
+                          </table>
+                      </div>
+
+                      <div className="relative inline-block">
+                          <button 
+                              onClick={() => setIsFieldLibraryOpen(!isFieldLibraryOpen)}
+                              className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-gray-600 hover:bg-gray-200 transition-colors"
+                          >
+                              <Plus size={16} />
+                          </button>
+
+                          {isFieldLibraryOpen && (
+                              <div className="absolute left-0 top-full mt-2 w-[320px] bg-white rounded-lg shadow-xl border border-gray-100 z-50 flex flex-col animate-in fade-in zoom-in-95 duration-100">
+                                  <div className="p-4 border-b border-gray-100">
+                                      <h4 className="text-base font-bold text-gray-900 mb-3">选择字段</h4>
+                                      <div className="relative">
+                                          <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                                          <input 
+                                              type="text" 
+                                              placeholder="搜索" 
+                                              className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                                          />
+                                      </div>
+                                  </div>
+                                  <div className="flex-1 overflow-y-auto max-h-[300px] p-2 custom-scrollbar">
+                                      {FIELD_LIBRARY.map((item, idx) => {
+                                          const isSelected = drawerSelectedLibItems.has(idx);
+                                          return (
+                                              <button 
+                                                  key={idx}
+                                                  onClick={() => toggleDrawerLibItemSelection(idx)}
+                                                  className="flex items-center w-full px-3 py-2.5 hover:bg-gray-50 rounded transition-colors text-left"
+                                              >
+                                                  <div className={`w-4 h-4 rounded border mr-3 flex items-center justify-center transition-colors shrink-0 ${isSelected ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300 bg-white'}`}>
+                                                      {isSelected && <Check size={10} />}
+                                                  </div>
+                                                  <span className="text-gray-400 mr-2 font-mono text-xs">A=</span>
+                                                  <span className="text-sm text-gray-700">{item.label}</span>
+                                              </button>
+                                          );
+                                      })}
+                                  </div>
+                                  <div className="p-3 border-t border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-b-lg">
+                                      <button className="text-sm text-gray-600 hover:text-blue-600 flex items-center">
+                                          <Plus size={14} className="mr-1" /> 新建字段
+                                      </button>
+                                      <div className="flex space-x-2">
+                                          <button 
+                                              onClick={() => {
+                                                  setIsFieldLibraryOpen(false);
+                                                  setDrawerSelectedLibItems(new Set());
+                                              }}
+                                              className="px-4 py-1.5 text-sm text-blue-600 border border-blue-200 bg-white hover:bg-blue-50 rounded transition-colors"
+                                          >
+                                              取消
+                                          </button>
+                                          <button 
+                                              onClick={() => addSelectedFieldsToTable(section.id)}
+                                              className="px-4 py-1.5 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
+                                          >
+                                              确定
+                                          </button>
+                                      </div>
+                                  </div>
+                              </div>
+                          )}
+                      </div>
+                  </div>
+              </div>
+          </>
+      );
+  };
+
+  const renderI18nModal = () => {
+      if (!isI18nModalOpen) return null;
+      return (
+          <div className="fixed inset-0 bg-black/50 z-[80] flex items-center justify-center backdrop-blur-sm">
+              <div className="bg-white rounded-xl shadow-2xl w-[400px] overflow-hidden animate-in zoom-in-95">
+                  <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                      <h3 className="text-lg font-bold text-gray-900">多语言设置</h3>
+                      <button onClick={() => setIsI18nModalOpen(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+                  </div>
+                  <div className="p-6 space-y-4">
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">简体中文 (zh-CN)</label>
+                          <input type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="例如: 绩效目标" />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">English (en-US)</label>
+                          <input type="text" className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none" placeholder="e.g. Performance Goal" />
+                      </div>
+                  </div>
+                  <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end space-x-3">
+                      <button onClick={() => setIsI18nModalOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">取消</button>
+                      <button onClick={() => setIsI18nModalOpen(false)} className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">保存</button>
+                  </div>
+              </div>
+          </div>
+      );
+  };
+
   const renderEditor = () => {
       if (!currentTemplate) return null;
       return (
@@ -756,44 +1007,11 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
                                                     <td className="p-2 text-center">
                                                         <div className="relative">
                                                              <button 
-                                                                onClick={() => setActiveAddSectionId(activeAddSectionId === section.id ? null : section.id)}
+                                                                onClick={() => setActiveTableSectionId(section.id)}
                                                                 className="p-1 hover:bg-blue-50 text-blue-500 rounded"
                                                             >
                                                                 <Plus size={16} />
                                                             </button>
-                                                            
-                                                            {/* Inline Add Menu for Table */}
-                                                            {activeAddSectionId === section.id && (
-                                                                <div ref={addMenuRef} className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-50 p-2 text-left">
-                                                                     <div className="text-xs font-bold text-gray-400 px-2 py-1 mb-1">选择列字段</div>
-                                                                     <div className="grid grid-cols-1 gap-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                                                        {FIELD_LIBRARY.map((item, idx) => (
-                                                                            <button 
-                                                                                key={idx}
-                                                                                onClick={() => {
-                                                                                    const newField = {
-                                                                                        id: `f_${Date.now()}_${idx}`,
-                                                                                        label: item.label,
-                                                                                        type: item.type as any,
-                                                                                        required: false,
-                                                                                        placeholder: item.placeholder,
-                                                                                        width: 'full' as const
-                                                                                    };
-                                                                                    setCurrentTemplate({
-                                                                                        ...currentTemplate,
-                                                                                        sections: currentTemplate.sections.map(s => s.id === section.id ? { ...s, fields: [...s.fields, newField] } : s)
-                                                                                    });
-                                                                                    setActiveAddSectionId(null);
-                                                                                }}
-                                                                                className="flex items-center px-2 py-1.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded text-left w-full"
-                                                                            >
-                                                                                <Plus size={10} className="mr-2" />
-                                                                                {item.label}
-                                                                            </button>
-                                                                        ))}
-                                                                     </div>
-                                                                </div>
-                                                            )}
                                                         </div>
                                                     </td>
                                                 </tr>
@@ -915,12 +1133,20 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
 
                 </div>
             </div>
+            {renderTableDrawer()}
+            {renderI18nModal()}
         </div>
       );
   };
 
   const filteredTemplates = templates.filter(t => 
       t.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredTemplates.length / itemsPerPage);
+  const paginatedTemplates = filteredTemplates.slice(
+      (currentPage - 1) * itemsPerPage, 
+      currentPage * itemsPerPage
   );
 
   const renderList = () => (
@@ -948,48 +1174,13 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
         </div>
 
         {/* List Content */}
-        <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/50">
-          <div className="mb-8 flex justify-between items-center bg-blue-50 p-5 rounded-xl border border-blue-100 shadow-sm">
+        <div className="p-8 overflow-y-auto custom-scrollbar flex-1 bg-gray-50/50 flex flex-col">
+          <div className="mb-8 flex justify-between items-center bg-blue-50 p-5 rounded-xl border border-blue-100 shadow-sm shrink-0">
               <div>
                   <h3 className="text-base font-bold text-blue-900">模板管理</h3>
                   <p className="text-sm text-blue-700 mt-1">为不同的考核周期定义标准问题集，统一面谈标准。</p>
               </div>
               <div className="flex space-x-3">
-                  {/* Export Group */}
-                  <div className="relative">
-                      <button 
-                        onClick={() => setShowExportMenu(!showExportMenu)}
-                        className="flex items-center px-4 py-2.5 bg-white text-blue-700 border border-blue-200 rounded-lg text-sm font-medium hover:bg-blue-50 transition-all shadow-sm"
-                      >
-                          <FileDown size={18} className="mr-2" /> 导出
-                          <ChevronDown size={14} className="ml-1 opacity-50" />
-                      </button>
-                      {showExportMenu && (
-                          <>
-                          <div className="fixed inset-0 z-10" onClick={() => setShowExportMenu(false)}></div>
-                          <div className="absolute right-0 top-full mt-2 w-40 bg-white rounded-lg shadow-xl border border-gray-100 z-20 py-1 animate-in fade-in zoom-in-95">
-                              <button onClick={() => handleExport('pdf')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
-                                  <FileText size={14} className="mr-2 text-red-500" /> PDF 文档
-                              </button>
-                              <button onClick={() => handleExport('word')} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center">
-                                  <FileText size={14} className="mr-2 text-blue-500" /> Word 文档
-                              </button>
-                          </div>
-                          </>
-                      )}
-                  </div>
-
-                  {/* Import Button */}
-                  <button 
-                    onClick={() => {
-                        setImportStep('upload');
-                        setIsImportModalOpen(true);
-                    }}
-                    className="flex items-center px-4 py-2.5 bg-white text-blue-700 border border-blue-200 rounded-lg text-sm font-medium hover:bg-blue-50 transition-all shadow-sm"
-                  >
-                      <FileUp size={18} className="mr-2" /> 导入
-                  </button>
-
                   {/* New Template Button */}
                   <button 
                     onClick={handleCreateNew}
@@ -1000,8 +1191,8 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
               </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {filteredTemplates.map((template) => (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 flex-1 content-start">
+            {paginatedTemplates.map((template) => (
               <div 
                 key={template.id} 
                 onClick={() => handleView(template)}
@@ -1019,17 +1210,11 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
                                 <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded border border-gray-200">已禁用</span>
                             )}
                         </div>
-                        <p className="text-xs text-gray-400 mt-0.5">{template.sections.length} 个模块 • {template.sections.reduce((acc, s) => acc + s.fields.length, 0)} 个字段</p>
                     </div>
                   </div>
                 </div>
                 
                 <p className="text-sm text-gray-500 mb-4 leading-relaxed line-clamp-2 min-h-[40px]">{template.description || '暂无描述'}</p>
-                
-                {/* CSS Preview Area */}
-                <div className="mb-4">
-                    {renderTemplatePreview(template)}
-                </div>
                 
                 <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
                     {/* Status Toggle Switch */}
@@ -1067,16 +1252,68 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
                 </div>
               </div>
             ))}
-            
-            {/* Create New Card (Placeholder style) */}
-             <button 
-                onClick={handleCreateNew}
-                className="border-2 border-dashed border-gray-300 rounded-xl p-6 flex flex-col items-center justify-center text-gray-400 hover:border-blue-400 hover:text-blue-600 hover:bg-blue-50 transition-all min-h-[380px]"
-            >
-                <Plus size={48} className="mb-4 opacity-50" />
-                <span className="font-medium">新建模板</span>
-            </button>
           </div>
+          
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex justify-end items-center space-x-2 shrink-0">
+                <span className="text-sm text-gray-500 mr-2">共 {filteredTemplates.length} 条</span>
+                <button 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded bg-white text-gray-600 hover:border-blue-500 hover:text-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    &lt;
+                </button>
+                
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                        key={page}
+                        onClick={() => setCurrentPage(page)}
+                        className={`w-8 h-8 flex items-center justify-center border rounded text-sm font-medium transition-colors ${
+                            currentPage === page 
+                            ? 'bg-blue-600 border-blue-600 text-white' 
+                            : 'bg-white border-gray-300 text-gray-600 hover:border-blue-500 hover:text-blue-500'
+                        }`}
+                    >
+                        {page}
+                    </button>
+                ))}
+
+                <button 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="w-8 h-8 flex items-center justify-center border border-gray-300 rounded bg-white text-gray-600 hover:border-blue-500 hover:text-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    &gt;
+                </button>
+                
+                <div className="flex items-center ml-2">
+                    <span className="text-sm text-gray-500">前往</span>
+                    <input 
+                        type="number" 
+                        min={1} 
+                        max={totalPages}
+                        className="w-12 h-8 border border-gray-300 rounded text-center text-sm focus:outline-none focus:border-blue-500 mx-2"
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                const val = parseInt(e.currentTarget.value);
+                                if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                                    setCurrentPage(val);
+                                }
+                            }
+                        }}
+                        onBlur={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val) && val >= 1 && val <= totalPages) {
+                                setCurrentPage(val);
+                            }
+                        }}
+                    />
+                    <span className="text-sm text-gray-500">页</span>
+                </div>
+            </div>
+          )}
         </div>
         
         {/* View Details Modal */}
