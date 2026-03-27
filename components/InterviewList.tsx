@@ -588,7 +588,7 @@ const InterviewList: React.FC<InterviewListProps> = ({
                 <th className="px-4 py-3 border-b border-gray-200">员工姓名</th>
                 <th className="px-4 py-3 border-b border-gray-200">面谈官</th>
                 <th className="px-4 py-3 border-b border-gray-200">面谈主题</th>
-                <th className="px-4 py-3 border-b border-gray-200">关联周期</th>
+                <th className="px-4 py-3 border-b border-gray-200">关联考核周期</th>
                 <th className="px-4 py-3 border-b border-gray-200">考核结果</th>
                 <th className="px-4 py-3 border-b border-gray-200">面谈时间</th>
                 <th className="px-4 py-3 border-b border-gray-200">面谈状态</th>
@@ -622,7 +622,11 @@ const InterviewList: React.FC<InterviewListProps> = ({
                           </div>
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                          {session.managerName}
+                          <div className="flex items-center">
+                              <span className="truncate max-w-[120px]" title={session.managerName}>
+                                  {session.managerName}
+                              </span>
+                          </div>
                       </td>
                       <td className="px-4 py-3">
                           <div className="flex flex-col">
@@ -636,7 +640,7 @@ const InterviewList: React.FC<InterviewListProps> = ({
                           </div>
                       </td>
                       <td className="px-4 py-3 text-gray-600">
-                          {session.assessmentCycle || '-'}
+                          {session.linkedAssessmentId ? (session.assessmentCycle || '-') : '-'}
                       </td>
                       <td className="px-4 py-3">
                           {renderAssessmentResult(session)}

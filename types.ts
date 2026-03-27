@@ -68,6 +68,7 @@ export interface InterviewTemplate {
   description: string;
   sections: TemplateSection[]; 
   status?: 'active' | 'disabled';
+  admins?: string[];
 }
 
 export interface InterviewSession {

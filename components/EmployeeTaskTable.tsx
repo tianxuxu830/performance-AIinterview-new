@@ -46,7 +46,7 @@ const EmployeeTaskTable: React.FC<EmployeeTaskTableProps> = ({ type, onAction, s
                  id: s.id,
                  name: s.period,
                  employee: s.employeeName,
-                 period: s.period,
+                 period: s.assessmentCycle || '-',
                  manager: s.managerName,
                  step: activeTab === 'confirm' ? '待确认' : '面谈沟通',
                  deadline: s.deadline || (s.date ? s.date.split(' ')[0] : '-'),
@@ -227,9 +227,9 @@ const EmployeeTaskTable: React.FC<EmployeeTaskTableProps> = ({ type, onAction, s
                             <th className="px-4 py-3 w-12 text-center border-b border-gray-200">
                                 <input type="checkbox" className="rounded text-primary focus:ring-primary cursor-pointer" />
                             </th>
-                            <th className="px-4 py-3 border-b border-gray-200">任务名称</th>
+                            <th className="px-4 py-3 border-b border-gray-200">面谈主题</th>
                             <th className="px-4 py-3 border-b border-gray-200">员工姓名</th>
-                            <th className="px-4 py-3 border-b border-gray-200">考核周期</th>
+                            <th className="px-4 py-3 border-b border-gray-200">关联考核周期</th>
                             {type === 'interviews' && <th className="px-4 py-3 border-b border-gray-200">面谈官</th>}
                             <th className="px-4 py-3 border-b border-gray-200">参与步骤</th>
                             <th className="px-4 py-3 border-b border-gray-200">
@@ -247,8 +247,16 @@ const EmployeeTaskTable: React.FC<EmployeeTaskTableProps> = ({ type, onAction, s
                                     </td>
                                     <td className="px-4 py-4 font-medium text-gray-900">{task.name}</td>
                                     <td className="px-4 py-4">{task.employee}</td>
-                                    <td className="px-4 py-4">{task.period}</td>
-                                    {type === 'interviews' && <td className="px-4 py-4 text-gray-600">{(task as any).manager}</td>}
+                                    <td className="px-4 py-4">{task.rawSession?.linkedAssessmentId ? task.period : '-'}</td>
+                                    {type === 'interviews' && (
+                                        <td className="px-4 py-4 text-gray-600">
+                                            <div className="flex items-center">
+                                                <span className="truncate max-w-[120px]" title={(task as any).manager}>
+                                                    {(task as any).manager}
+                                                </span>
+                                            </div>
+                                        </td>
+                                    )}
                                     <td className="px-4 py-4">{task.step}</td>
                                     <td className="px-4 py-4">
                                         <div className="flex items-center text-gray-600">

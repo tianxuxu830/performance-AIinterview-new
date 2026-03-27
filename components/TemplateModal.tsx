@@ -5,10 +5,12 @@ import {
     Save, Copy, Layout, Square, Columns, 
     MoreHorizontal, Check, AlignLeft, Paperclip, Star, Type,
     Grid, Table, List, Settings, ChevronDown, CheckSquare, GripVertical, Search, Eye,
-    FileUp, FileDown, Loader2, Globe
+    FileUp, FileDown, Loader2, Globe, Share2
 } from 'lucide-react';
-import { MOCK_TEMPLATES } from '../constants';
+import { MOCK_TEMPLATES, MOCK_EMPLOYEES } from '../constants';
 import { InterviewTemplate, TemplateField, TemplateSection, FieldType } from '../types';
+import EmployeeSelectorModal from './EmployeeSelectorModal';
+import SharePermissionModal from './SharePermissionModal';
 
 interface TemplateConfigPageProps {
   onBack: () => void;
@@ -31,6 +33,7 @@ const FIELD_LIBRARY = [
 const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
   const [templates, setTemplates] = useState<InterviewTemplate[]>(MOCK_TEMPLATES);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTemplates, setSelectedTemplates] = useState<Set<string>>(new Set());
   
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
@@ -63,6 +66,19 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
   const [isFieldLibraryOpen, setIsFieldLibraryOpen] = useState(false);
   const [drawerSelectedLibItems, setDrawerSelectedLibItems] = useState<Set<number>>(new Set());
 
+  // Admin Selector State
+  const [isAdminSelectorOpen, setIsAdminSelectorOpen] = useState(false);
+  const [isAdminDropdownOpen, setIsAdminDropdownOpen] = useState(false);
+  const [adminSearchTerm, setAdminSearchTerm] = useState('');
+  const adminDropdownRef = useRef<HTMLDivElement>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [templateToShare, setTemplateToShare] = useState<InterviewTemplate | null>(null);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [batchConfirmModal, setBatchConfirmModal] = useState<{
+      isOpen: boolean;
+      type: 'enable' | 'disable' | 'delete' | null;
+  }>({ isOpen: false, type: null });
+
   // Drag and Drop State
   const [draggedItem, setDraggedItem] = useState<{sectionId: string, index: number} | null>(null);
 
@@ -74,13 +90,13 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
         setSelectedLibItems(new Set()); // Clear selection on close
       }
     };
-    if (activeAddSectionId) {
+    if (activeAddSectionId || isAdminDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [activeAddSectionId]);
+  }, [activeAddSectionId, isAdminDropdownOpen]);
 
   // Reset pagination on search
   useEffect(() => {
@@ -156,6 +172,65 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
           ? { ...t, status: t.status === 'active' ? 'disabled' : 'active' } 
           : t
       ));
+  };
+
+  const toggleTemplateSelection = (e: React.MouseEvent, templateId: string) => {
+      e.stopPropagation();
+      const newSelected = new Set(selectedTemplates);
+      if (newSelected.has(templateId)) {
+          newSelected.delete(templateId);
+      } else {
+          newSelected.add(templateId);
+      }
+      setSelectedTemplates(newSelected);
+  };
+
+  const handleBatchShare = () => {
+      if (selectedTemplates.size === 0) return;
+      setTemplateToShare(null);
+      setIsShareModalOpen(true);
+  };
+
+  const handleBatchEnable = () => {
+      if (selectedTemplates.size === 0) return;
+      setBatchConfirmModal({ isOpen: true, type: 'enable' });
+  };
+
+  const handleBatchDisable = () => {
+      if (selectedTemplates.size === 0) return;
+      setBatchConfirmModal({ isOpen: true, type: 'disable' });
+  };
+
+  const handleBatchDelete = () => {
+      if (selectedTemplates.size === 0) return;
+      setBatchConfirmModal({ isOpen: true, type: 'delete' });
+  };
+
+  const executeBatchAction = () => {
+      const { type } = batchConfirmModal;
+      if (!type) return;
+
+      if (type === 'enable') {
+          setTemplates(prev => prev.map(t => 
+              selectedTemplates.has(t.id) ? { ...t, status: 'active' } : t
+          ));
+      } else if (type === 'disable') {
+          setTemplates(prev => prev.map(t => 
+              selectedTemplates.has(t.id) ? { ...t, status: 'disabled' } : t
+          ));
+      } else if (type === 'delete') {
+          setTemplates(prev => prev.filter(t => !selectedTemplates.has(t.id)));
+      }
+
+      setSelectedTemplates(new Set());
+      setIsSelectionMode(false);
+      setBatchConfirmModal({ isOpen: false, type: null });
+  };
+
+  const handleShare = (e: React.MouseEvent, template: InterviewTemplate) => {
+      e.stopPropagation();
+      setTemplateToShare(template);
+      setIsShareModalOpen(true);
   };
 
   const handleSave = () => {
@@ -241,7 +316,7 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
 
   // --- Template Editor Logic ---
 
-  const updateTemplateInfo = (key: keyof InterviewTemplate, value: string) => {
+  const updateTemplateInfo = (key: keyof InterviewTemplate, value: any) => {
       if (!currentTemplate) return;
       setCurrentTemplate({ ...currentTemplate, [key]: value });
   };
@@ -891,7 +966,7 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
                     
                     {/* 1. Template Header (Compact) */}
                     <div className="bg-white px-6 py-5 rounded-xl shadow-sm border border-gray-200 group relative hover:border-blue-300 transition-colors">
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             <input 
                                 type="text" 
                                 className="w-full text-lg font-bold text-gray-900 border-none p-0 focus:ring-0 placeholder-gray-300 bg-transparent"
@@ -906,6 +981,110 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
                                 value={currentTemplate.description}
                                 onChange={e => updateTemplateInfo('description', e.target.value)}
                             />
+                            <div className="flex items-center pt-2 border-t border-gray-100">
+                                <span className="text-xs text-gray-500 mr-3">模板管理员:</span>
+                                <div className="relative flex-1" ref={adminDropdownRef}>
+                                    <div 
+                                        onClick={() => setIsAdminDropdownOpen(!isAdminDropdownOpen)}
+                                        className="min-h-[32px] w-full border border-gray-200 rounded-lg px-2 py-1 flex flex-wrap gap-1.5 items-center cursor-pointer hover:border-blue-300 transition-colors bg-white"
+                                    >
+                                        {currentTemplate.admins && currentTemplate.admins.length > 0 ? (
+                                            currentTemplate.admins.map(adminId => {
+                                                const admin = MOCK_EMPLOYEES.find(e => e.id === adminId);
+                                                return admin ? (
+                                                    <div key={adminId} className="flex items-center bg-gray-100 text-gray-700 px-2 py-0.5 rounded text-xs group/tag">
+                                                        {admin.name}
+                                                        <button 
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const newAdmins = currentTemplate.admins.filter(id => id !== adminId);
+                                                                updateTemplateInfo('admins', newAdmins as any);
+                                                            }}
+                                                            className="ml-1 text-gray-400 hover:text-red-500 opacity-0 group-hover/tag:opacity-100 transition-opacity"
+                                                        >
+                                                            <X size={10} />
+                                                        </button>
+                                                    </div>
+                                                ) : null;
+                                            })
+                                        ) : (
+                                            <span className="text-xs text-gray-400">请选择管理员</span>
+                                        )}
+                                        <div className="ml-auto flex items-center gap-1">
+                                            {currentTemplate.admins && currentTemplate.admins.length > 0 && (
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        updateTemplateInfo('admins', [] as any);
+                                                    }}
+                                                    className="text-gray-400 hover:text-gray-600 p-0.5"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            )}
+                                            <ChevronDown size={14} className={`text-gray-400 transition-transform ${isAdminDropdownOpen ? 'rotate-180' : ''}`} />
+                                        </div>
+                                    </div>
+
+                                    {isAdminDropdownOpen && (
+                                        <div className="absolute z-50 top-full left-0 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className="p-2 border-b border-gray-50 bg-gray-50/50">
+                                                <div className="relative">
+                                                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+                                                    <input 
+                                                        type="text"
+                                                        autoFocus
+                                                        placeholder="搜索管理员..."
+                                                        className="w-full pl-9 pr-3 py-1.5 text-xs border border-gray-200 rounded-lg focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                                        value={adminSearchTerm}
+                                                        onChange={(e) => setAdminSearchTerm(e.target.value)}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="max-h-60 overflow-y-auto custom-scrollbar py-1">
+                                                {MOCK_EMPLOYEES.filter(e => 
+                                                    e.name.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
+                                                    e.id.toLowerCase().includes(adminSearchTerm.toLowerCase())
+                                                ).map(employee => {
+                                                    const isSelected = currentTemplate.admins?.includes(employee.id);
+                                                    return (
+                                                        <div 
+                                                            key={employee.id}
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const currentAdmins = currentTemplate.admins || [];
+                                                                const newAdmins = isSelected 
+                                                                    ? currentAdmins.filter(id => id !== employee.id)
+                                                                    : [...currentAdmins, employee.id];
+                                                                updateTemplateInfo('admins', newAdmins as any);
+                                                            }}
+                                                            className={`px-4 py-2 text-sm flex items-center justify-between cursor-pointer hover:bg-blue-50 transition-colors ${isSelected ? 'bg-blue-50/50 text-blue-700' : 'text-gray-700'}`}
+                                                        >
+                                                            <div className="flex items-center">
+                                                                <img src={employee.avatar} alt={employee.name} className="w-6 h-6 rounded-full mr-2.5" />
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-medium">{employee.name}</span>
+                                                                    <span className="text-[10px] text-gray-400">{employee.id}</span>
+                                                                </div>
+                                                            </div>
+                                                            {isSelected && <Check size={14} className="text-blue-500" />}
+                                                        </div>
+                                                    );
+                                                })}
+                                                {MOCK_EMPLOYEES.filter(e => 
+                                                    e.name.toLowerCase().includes(adminSearchTerm.toLowerCase()) ||
+                                                    e.id.toLowerCase().includes(adminSearchTerm.toLowerCase())
+                                                ).length === 0 && (
+                                                    <div className="px-4 py-8 text-center text-gray-400 text-xs">
+                                                        未找到相关人员
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1135,6 +1314,18 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
             </div>
             {renderTableDrawer()}
             {renderI18nModal()}
+            {isAdminSelectorOpen && (
+                <EmployeeSelectorModal
+                    isOpen={isAdminSelectorOpen}
+                    onClose={() => setIsAdminSelectorOpen(false)}
+                    onSelect={(selectedIds) => {
+                        updateTemplateInfo('admins', selectedIds as any);
+                        setIsAdminSelectorOpen(false);
+                    }}
+                    initialSelectedIds={currentTemplate.admins}
+                    interviewType="daily"
+                />
+            )}
         </div>
       );
   };
@@ -1148,6 +1339,47 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
       (currentPage - 1) * itemsPerPage, 
       currentPage * itemsPerPage
   );
+
+  const renderBatchConfirmModal = () => {
+      if (!batchConfirmModal.isOpen) return null;
+      const { type } = batchConfirmModal;
+      const config = {
+          enable: { title: '批量启用', color: 'text-green-600', bg: 'bg-green-50', btn: 'bg-green-600 hover:bg-green-700', text: '启用' },
+          disable: { title: '批量禁用', color: 'text-orange-600', bg: 'bg-orange-50', btn: 'bg-orange-600 hover:bg-orange-700', text: '禁用' },
+          delete: { title: '批量删除', color: 'text-red-600', bg: 'bg-red-50', btn: 'bg-red-600 hover:bg-red-700', text: '删除' }
+      }[type!];
+
+      return (
+          <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center backdrop-blur-sm">
+              <div className="bg-white rounded-xl shadow-2xl w-[400px] overflow-hidden animate-in zoom-in-95">
+                  <div className="p-6 text-center">
+                      <div className={`w-16 h-16 ${config.bg} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                          {type === 'delete' ? <Trash2 className={config.color} size={32} /> : <CheckSquare className={config.color} size={32} />}
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">{config.title}</h3>
+                      <p className="text-sm text-gray-500">
+                          确定要{config.text}选中的 <span className="font-bold text-gray-900">{selectedTemplates.size}</span> 个模板吗？
+                          {type === 'delete' && <span className="block text-red-500 mt-1">此操作不可撤销。</span>}
+                      </p>
+                  </div>
+                  <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
+                      <button 
+                        onClick={() => setBatchConfirmModal({ isOpen: false, type: null })}
+                        className="px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+                      >
+                          取消
+                      </button>
+                      <button 
+                        onClick={executeBatchAction}
+                        className={`px-4 py-2 text-sm font-medium text-white rounded-lg shadow-sm transition-all ${config.btn}`}
+                      >
+                          确认{config.text}
+                      </button>
+                  </div>
+              </div>
+          </div>
+      );
+  };
 
   const renderList = () => (
     <div className="flex flex-col h-full bg-white">
@@ -1181,6 +1413,56 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
                   <p className="text-sm text-blue-700 mt-1">为不同的考核周期定义标准问题集，统一面谈标准。</p>
               </div>
               <div className="flex space-x-3">
+                  {/* Selection Mode Toggle / Batch Operations */}
+                  {isSelectionMode ? (
+                      <div className="flex items-center space-x-2 bg-white border border-gray-200 rounded-lg p-1 shadow-sm">
+                          <div className="px-3 text-sm text-gray-500 font-medium border-r border-gray-100">
+                              已选 {selectedTemplates.size}
+                          </div>
+                          <button 
+                            onClick={handleBatchEnable}
+                            disabled={selectedTemplates.size === 0}
+                            className="text-xs text-green-600 px-3 py-1.5 rounded-md hover:bg-green-50 font-medium transition-all disabled:opacity-30"
+                          >
+                              开启
+                          </button>
+                          <button 
+                            onClick={handleBatchDisable}
+                            disabled={selectedTemplates.size === 0}
+                            className="text-xs text-orange-600 px-3 py-1.5 rounded-md hover:bg-orange-50 font-medium transition-all disabled:opacity-30"
+                          >
+                              禁用
+                          </button>
+                          <button 
+                            onClick={handleBatchDelete}
+                            disabled={selectedTemplates.size === 0}
+                            className="text-xs text-red-600 px-3 py-1.5 rounded-md hover:bg-red-50 font-medium transition-all disabled:opacity-30"
+                          >
+                              删除
+                          </button>
+                          <button 
+                            onClick={handleBatchShare}
+                            disabled={selectedTemplates.size === 0}
+                            className="text-xs text-blue-600 px-3 py-1.5 rounded-md hover:bg-blue-50 font-medium transition-all disabled:opacity-30"
+                          >
+                              分享权限
+                          </button>
+                          <div className="w-px h-4 bg-gray-100 mx-1"></div>
+                          <button 
+                            onClick={() => { setIsSelectionMode(false); setSelectedTemplates(new Set()); }}
+                            className="text-xs text-gray-500 px-3 py-1.5 rounded-md hover:bg-gray-50 font-medium transition-all"
+                          >
+                              取消
+                          </button>
+                      </div>
+                  ) : (
+                      <button 
+                        onClick={() => setIsSelectionMode(true)}
+                        className="text-sm bg-white text-blue-600 border border-blue-200 px-5 py-2.5 rounded-lg font-medium hover:bg-blue-50 flex items-center shadow-sm transition-all"
+                      >
+                          <Layout size={18} className="mr-2" /> 批量操作
+                      </button>
+                  )}
                   {/* New Template Button */}
                   <button 
                     onClick={handleCreateNew}
@@ -1212,9 +1494,41 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
                         </div>
                     </div>
                   </div>
+                  {isSelectionMode && (
+                      <div 
+                        onClick={(e) => toggleTemplateSelection(e, template.id)}
+                        className="p-1 cursor-pointer"
+                      >
+                          {selectedTemplates.has(template.id) ? (
+                              <CheckSquare size={18} className="text-blue-600" />
+                          ) : (
+                              <Square size={18} className="text-gray-300 hover:text-blue-400" />
+                          )}
+                      </div>
+                  )}
                 </div>
                 
                 <p className="text-sm text-gray-500 mb-4 leading-relaxed line-clamp-2 min-h-[40px]">{template.description || '暂无描述'}</p>
+                
+                {template.admins && template.admins.length > 0 && (
+                    <div className="flex items-center mb-4">
+                        <span className="text-xs text-gray-400 mr-2">管理员:</span>
+                        <div className="flex items-center space-x-2">
+                            {template.admins.slice(0, 3).map(adminId => {
+                                const admin = MOCK_EMPLOYEES.find(e => e.id === adminId);
+                                return admin ? (
+                                    <div key={adminId} className="flex items-center space-x-1">
+                                        <img src={admin.avatar} alt={admin.name} className="w-5 h-5 rounded-full" />
+                                        <span className="text-xs text-gray-600">{admin.name}</span>
+                                    </div>
+                                ) : null;
+                            })}
+                            {template.admins.length > 3 && (
+                                <span className="text-xs text-gray-500">等{template.admins.length}人</span>
+                            )}
+                        </div>
+                    </div>
+                )}
                 
                 <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
                     {/* Status Toggle Switch */}
@@ -1227,6 +1541,13 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
                     </button>
 
                     <div className="flex items-center space-x-1">
+                        <button 
+                            onClick={(e) => handleShare(e, template)}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="分享"
+                        >
+                            <Share2 size={16} />
+                        </button>
                         <button 
                             onClick={(e) => { e.stopPropagation(); handleEdit(template); }}
                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -1320,6 +1641,37 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
         {renderViewModal()}
         {/* Import Modal */}
         {renderImportModal()}
+        {/* Batch Confirm Modal */}
+        {renderBatchConfirmModal()}
+        {/* Share Permission Modal */}
+        <SharePermissionModal 
+            isOpen={isShareModalOpen} 
+            onClose={() => {
+                setIsShareModalOpen(false);
+                setTemplateToShare(null);
+            }}
+            initialSelectedUserIds={templateToShare?.admins || []}
+            onSave={(selectedUserIds) => {
+                if (templateToShare) {
+                    setTemplates(prev => prev.map(t => 
+                        t.id === templateToShare.id 
+                            ? { ...t, admins: selectedUserIds }
+                            : t
+                    ));
+                } else if (selectedTemplates.size > 0) {
+                    setTemplates(prev => prev.map(t => 
+                        selectedTemplates.has(t.id)
+                            ? { ...t, admins: selectedUserIds }
+                            : t
+                    ));
+                    setSelectedTemplates(new Set());
+                    setIsSelectionMode(false);
+                }
+                setIsShareModalOpen(false);
+                setTemplateToShare(null);
+                alert('权限已更新');
+            }}
+        />
     </div>
   );
 

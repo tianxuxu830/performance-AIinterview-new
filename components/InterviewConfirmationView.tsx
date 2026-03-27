@@ -126,8 +126,8 @@ const InterviewConfirmationView: React.FC<InterviewConfirmationViewProps> = ({ s
   };
 
   const handleReject = () => {
-    if (!rejectReason) return alert('请输入退回理由');
-    alert('任务已退回给面谈官：' + rejectReason);
+    if (!rejectReason) return alert('请输入申请重新沟通的理由');
+    alert('已申请重新沟通：' + rejectReason);
     onBack();
   };
 
@@ -149,7 +149,7 @@ const InterviewConfirmationView: React.FC<InterviewConfirmationViewProps> = ({ s
             onClick={() => setIsRejecting(true)}
             className="px-4 py-2 text-gray-600 hover:text-red-600 text-sm font-medium hover:bg-red-50 rounded-lg transition-colors"
           >
-            退回修正
+            返回重新沟通
           </button>
           <button 
             onClick={handleConfirmAction}
@@ -377,19 +377,19 @@ const InterviewConfirmationView: React.FC<InterviewConfirmationViewProps> = ({ s
             <div className="p-6">
               <div className="flex items-center space-x-3 mb-4 text-red-600">
                 <AlertTriangle size={24} />
-                <h3 className="text-lg font-bold">确定要退回修正吗？</h3>
+                <h3 className="text-lg font-bold">确定要申请重新沟通吗？</h3>
               </div>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 className="w-full border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-red-500 outline-none min-h-[100px]"
-                placeholder="请输入退回修正的理由..."
+                placeholder="请输入申请重新沟通的理由..."
               ></textarea>
-              <p className="text-xs text-gray-500 mt-4 leading-relaxed">退回后，任务状态将变更为“进行中”，面谈官将收到通知进行重新反馈。</p>
+              <p className="text-xs text-gray-500 mt-4 leading-relaxed">申请后，任务状态将变更为“进行中”，面谈官将收到通知进行重新沟通。</p>
             </div>
             <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3 border-t">
               <button onClick={() => setIsRejecting(false)} className="px-4 py-2 text-gray-600 font-medium">取消</button>
-              <button onClick={handleReject} className="px-6 py-2 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700">确认退回</button>
+              <button onClick={handleReject} className="px-6 py-2 bg-red-600 text-white rounded-xl text-sm font-bold hover:bg-red-700">确认申请</button>
             </div>
           </div>
         </div>

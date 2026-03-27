@@ -4,52 +4,76 @@ import { Employee, InterviewSession, InterviewTemplate, Status, InterviewType, P
 export const MOCK_EMPLOYEES: Employee[] = [
   { 
     id: '1', 
-    name: '李莎', 
+    name: 'Olivia', 
     department: '产品部', 
     role: '高级产品经理', 
-    avatar: 'https://picsum.photos/id/64/100/100',
-    joinDate: '2022-03-15',
-    tenure: '2年',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Olivia',
     status: '在职',
-    lastInterviewDate: '2025-10-10',
-    lastPerformance: '88.5/A'
-  },
+    account: '15279174471'
+  } as any,
   { 
     id: '2', 
-    name: '王森', 
+    name: '罗孟雅', 
     department: '销售部', 
     role: '销售总监', 
-    avatar: 'https://picsum.photos/id/91/100/100',
-    joinDate: '2020-05-20',
-    tenure: '4年',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
     status: '在职',
-    lastInterviewDate: '2025-11-15',
-    lastPerformance: '95.0/S'
-  },
+    account: '19855675216'
+  } as any,
   { 
     id: '3', 
-    name: '张妮', 
+    name: 'Baijun', 
     department: '人力资源部', 
     role: 'HRBP', 
-    avatar: 'https://picsum.photos/id/177/100/100',
-    joinDate: '2023-01-10',
-    tenure: '1年',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka',
     status: '在职',
-    lastInterviewDate: '2025-09-20',
-    lastPerformance: '78.0/B'
-  },
+    account: '15724532009'
+  } as any,
   { 
     id: '4', 
-    name: '陈飞', 
+    name: 'Jessie', 
     department: '云演示组', 
     role: '工程师', 
-    avatar: 'https://picsum.photos/id/338/100/100',
-    joinDate: '2024-06-01',
-    tenure: '0.5年',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jessie',
     status: '在职',
-    lastInterviewDate: '2025-12-05',
-    lastPerformance: '58.0/C'
-  },
+    account: '13917182829'
+  } as any,
+  { 
+    id: '5', 
+    name: '黎小炫', 
+    department: '技术部', 
+    role: '高级管理员', 
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Xuan',
+    status: '在职',
+    account: '15510301146'
+  } as any,
+  { 
+    id: '6', 
+    name: 'Fay', 
+    department: '市场部', 
+    role: 'BD演示权限', 
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fay',
+    status: '在职',
+    account: '17601252750'
+  } as any,
+  { 
+    id: '7', 
+    name: 'Grace', 
+    department: '财务部', 
+    role: '财务主管', 
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Grace',
+    status: '在职',
+    account: '15021768592'
+  } as any,
+  { 
+    id: '8', 
+    name: 'BD演示账号', 
+    department: '演示组', 
+    role: '超级管理员', 
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
+    status: '在职',
+    account: '17316587851'
+  } as any,
 ];
 
 export const MOCK_TEMPLATES: InterviewTemplate[] = [
@@ -58,6 +82,7 @@ export const MOCK_TEMPLATES: InterviewTemplate[] = [
     name: '差距及改进 (Gap Analysis)',
     description: '通过对比目标与实际情况，分析原因并制定改进计划。',
     status: 'active',
+    admins: ['e1', 'e2'],
     sections: [
         {
             id: 's1',
@@ -108,6 +133,7 @@ export const MOCK_TEMPLATES: InterviewTemplate[] = [
     name: '汉堡法则 (Hamburger Method)',
     description: '采用"表扬-指出不足-鼓励"的沟通方式，更易于员工接受。',
     status: 'active',
+    admins: ['e3'],
     sections: [
         {
             id: 's1',
@@ -152,6 +178,7 @@ export const MOCK_TEMPLATES: InterviewTemplate[] = [
     name: '综合反馈表 (全字段类型)',
     description: '包含所有字段类型的综合反馈模板，用于演示 AI 生成功能。',
     status: 'active',
+    admins: [],
     sections: [
         {
             id: 's1',
@@ -404,6 +431,35 @@ export const MOCK_SESSIONS: InterviewSession[] = [
     gradeTag: 'B',
     department: '人力资源部',
     riskTag: 'controversial'
+  },
+  {
+    id: 'int_007',
+    employeeId: '5',
+    employeeName: '黎小炫',
+    managerName: '刘工',
+    date: '2026-01-20 15:00',
+    period: '2025 Q4 绩效考核',
+    status: Status.PendingConfirmation,
+    type: InterviewType.Regular,
+    method: 'appointment',
+    templateId: 't1',
+    linkedAssessmentId: 'perf_004',
+    assessmentCycle: '2025 Q4',
+    content: {
+      'sec1_summary': '基于该员工本周期的表现，整体业绩达成率较高，但在跨部门协作方面仍有提升空间。建议后续加强与产品团队的沟通频次，确保需求理解的一致性。同时，在项目管理方面表现出色，能够有效把控进度风险。',
+      'sec2_achievements': '1. 成功主导了 Q4 核心版本的发布，上线后用户活跃度提升 15%。\n2. 优化了前端构建流程，打包速度提升 40%。\n3. 输出了 3 篇高质量的技术分享文档，帮助团队成员快速成长。',
+      'sec2_improvements': '1. 跨部门沟通时需更加主动，避免信息滞后。\n2. 代码注释规范性有待加强，建议遵循团队最新规范。\n3. 对新技术的探索深度不够，建议投入更多时间进行技术预研。',
+      'sec3_plan': '1. 制定详细的 Q1 个人成长计划，重点攻克 Serverless 架构落地。\n2. 每周组织一次代码走查，提升代码质量。\n3. 参与开源社区贡献，提升个人及团队影响力。',
+      'sec4_date': '2025-12-31',
+      'sec4_select': '正式绩效',
+      'sec4_number': '92',
+      'sec4_graph': JSON.stringify({ radar: [80, 90, 85, 70, 95] }),
+      'sec4_attachment': JSON.stringify([{ name: 'Q4述职报告.pdf', size: '2.4MB' }])
+    },
+    schedulingStatus: 'scheduled',
+    gradeTag: 'A',
+    department: '技术部',
+    riskTag: 'normal'
   }
 ];
 

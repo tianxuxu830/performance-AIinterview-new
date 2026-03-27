@@ -9,14 +9,16 @@ interface EmployeeSelectorModalProps {
   onSelect: (employeeIds: string[]) => void;
   initialSelectedIds?: string[];
   interviewType?: 'assessment' | 'daily';
+  filterTask?: string;
 }
 
 const EmployeeSelectorModal: React.FC<EmployeeSelectorModalProps> = ({ 
   isOpen, 
   onClose, 
   onSelect, 
-  initialSelectedIds = [],
-  interviewType = 'assessment'
+  initialSelectedIds,
+  interviewType = 'assessment',
+  filterTask
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   // We track selected IDs. For assessment, it's record IDs. For daily, it's employee IDs.
@@ -52,25 +54,26 @@ const EmployeeSelectorModal: React.FC<EmployeeSelectorModalProps> = ({
       setMinScore('');
       setMaxScore('');
       
-      setSelectedTask('');
+      setSelectedTask(filterTask || '');
       if(allPeriods.length > 0) setSelectedPeriod(allPeriods[0]);
 
       // Restore selections
       const initialIds = new Set<string>();
-      if (initialSelectedIds.length > 0) {
+      const idsToUse = initialSelectedIds || [];
+      if (idsToUse.length > 0) {
           if (interviewType === 'assessment') {
-              initialSelectedIds.forEach(empId => {
+              idsToUse.forEach(empId => {
                   const targetPeriod = selectedPeriod || allPeriods[0];
                   const rec = MOCK_PERFORMANCE_RECORDS.find(r => r.employeeId === empId && r.period === targetPeriod);
                   if (rec) initialIds.add(rec.id);
               });
           } else {
-              initialSelectedIds.forEach(id => initialIds.add(id));
+              idsToUse.forEach(id => initialIds.add(id));
           }
       }
       setSelectedIds(initialIds);
     }
-  }, [isOpen, initialSelectedIds, allPeriods, interviewType]);
+  }, [isOpen, initialSelectedIds, allPeriods, interviewType, filterTask]);
 
   // Prepare the display data
   const displayData = useMemo(() => {

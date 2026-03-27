@@ -20,6 +20,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
   defaultTopic = '绩效面谈'
 }) => {
   const [interviewType, setInterviewType] = useState<'assessment' | 'daily'>('assessment');
+  const [assessmentTask, setAssessmentTask] = useState<string>('2025 Q4 绩效考核');
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<string[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string>(MOCK_TEMPLATES[0].id);
   const [deadline, setDeadline] = useState(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
@@ -51,10 +52,20 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
       setSelectedEmployeeIds(initialEmployeeIds);
       setTopic(defaultTopic);
       setInterviewerRole('manager');
+      setAssessmentTask('2025 Q4 绩效考核');
       setRequireConfirmation(true);
       setSignatureType('confirmation');
     } 
   }, [isOpen, initialEmployeeIds, defaultTopic]);
+
+  // Auto-update topic when assessment task changes if source is assessment
+  useEffect(() => {
+      if (interviewType === 'assessment' && assessmentTask) {
+          setTopic(`${assessmentTask} 面谈`);
+      } else if (interviewType === 'daily' && topic.includes('考核')) {
+          setTopic('日常辅导面谈');
+      }
+  }, [assessmentTask, interviewType]);
 
   // Resize Logic
   useEffect(() => {
@@ -134,7 +145,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
                   {/* 0. Interview Type */}
                   <div className="grid grid-cols-4 items-center gap-4">
                       <label className="text-sm font-medium text-gray-700 text-right">
-                          <span className="text-red-500 mr-1">*</span>面谈类型
+                          <span className="text-red-500 mr-1">*</span>面谈背景
                       </label>
                       <div className="col-span-3 flex items-center space-x-6">
                           <label className="flex items-center cursor-pointer group relative">
@@ -144,7 +155,14 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
                                 checked={interviewType === 'assessment'}
                                 onChange={() => setInterviewType('assessment')}
                               />
-                              <span className="ml-2 text-sm text-gray-700">关联考核面谈</span>
+                              <span className="ml-2 text-sm text-gray-700">关联考核任务</span>
+                              <div className="ml-1 relative group/tooltip">
+                                  <HelpCircle size={14} className="text-gray-400 hover:text-gray-600 cursor-help" />
+                                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/tooltip:block w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50">
+                                      面谈将与特定的绩效考核任务关联，面谈记录将作为考核结果的一部分。
+                                      <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                  </div>
+                              </div>
                           </label>
 
                           <label className="flex items-center cursor-pointer group relative">
@@ -154,10 +172,37 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
                                 checked={interviewType === 'daily'}
                                 onChange={() => setInterviewType('daily')}
                               />
-                              <span className="ml-2 text-sm text-gray-700">日常/专项面谈</span>
+                              <span className="ml-2 text-sm text-gray-700">专项/日常面谈</span>
+                              <div className="ml-1 relative group/tooltip">
+                                  <HelpCircle size={14} className="text-gray-400 hover:text-gray-600 cursor-help" />
+                                  <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 hidden group-hover/tooltip:block w-48 p-2 bg-gray-900 text-white text-xs rounded shadow-lg z-50">
+                                      独立的面谈记录，不与特定的考核任务关联，适用于日常辅导或专项沟通。
+                                      <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                                  </div>
+                              </div>
                           </label>
                       </div>
                   </div>
+
+                  {/* 0.5 Assessment Task (Conditional) */}
+                  {interviewType === 'assessment' && (
+                      <div className="grid grid-cols-4 items-center gap-4">
+                          <label className="text-sm font-medium text-gray-700 text-right">
+                              <span className="text-red-500 mr-1">*</span>关联考核任务
+                          </label>
+                          <div className="col-span-3">
+                              <select 
+                                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                                  value={assessmentTask}
+                                  onChange={(e) => setAssessmentTask(e.target.value)}
+                              >
+                                  <option value="2025 Q4 绩效考核">2025 Q4 绩效考核</option>
+                                  <option value="2025 Q3 绩效考核">2025 Q3 绩效考核</option>
+                                  <option value="2025 年度绩效考核">2025 年度绩效考核</option>
+                              </select>
+                          </div>
+                      </div>
+                  )}
 
                   {/* 1. Topic */}
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -314,6 +359,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
                       topic,
                       interviewType,
                       interviewerRole,
+                      assessmentTask: interviewType === 'assessment' ? assessmentTask : undefined,
                       requireConfirmation,
                       signatureType,
                       status: 'NotStarted',
@@ -347,6 +393,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
         }}
         initialSelectedIds={selectedEmployeeIds}
         interviewType={interviewType}
+        filterTask={interviewType === 'assessment' ? assessmentTask : undefined}
       />
     </>
   );
