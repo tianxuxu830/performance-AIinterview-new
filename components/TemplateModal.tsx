@@ -7,10 +7,12 @@ import {
     Grid, Table, List, Settings, ChevronDown, CheckSquare, GripVertical, Search, Eye,
     FileUp, FileDown, Loader2, Globe, Share2
 } from 'lucide-react';
-import { MOCK_TEMPLATES, MOCK_EMPLOYEES } from '../constants';
+import { MOCK_TEMPLATES, MOCK_EMPLOYEES, MOCK_TEMPLATE_CHANGE_LOGS } from '../constants';
 import { InterviewTemplate, TemplateField, TemplateSection, FieldType } from '../types';
 import EmployeeSelectorModal from './EmployeeSelectorModal';
 import SharePermissionModal from './SharePermissionModal';
+import ChangeLogModal from './ChangeLogModal';
+import { Clock } from 'lucide-react';
 
 interface TemplateConfigPageProps {
   onBack: () => void;
@@ -55,6 +57,7 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
   // UI State for menus
   const [activeAddSectionId, setActiveAddSectionId] = useState<string | null>(null);
   const addMenuRef = useRef<HTMLDivElement>(null);
+  const [isChangeLogOpen, setIsChangeLogOpen] = useState(false);
 
   // Multi-select State for Field Library
   const [selectedLibItems, setSelectedLibItems] = useState<Set<number>>(new Set());
@@ -1392,6 +1395,13 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
                 <h2 className="text-xl font-bold text-gray-900">绩效面谈模板配置</h2>
             </div>
             <div className="flex items-center space-x-2">
+                 <button 
+                     onClick={() => setIsChangeLogOpen(true)}
+                     className="px-3 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center text-sm font-medium"
+                 >
+                     <Clock size={16} className="mr-2" />
+                     变更记录
+                 </button>
                  <div className="relative">
                     <input 
                         type="text" 
@@ -1671,6 +1681,14 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
                 setTemplateToShare(null);
                 alert('权限已更新');
             }}
+        />
+
+        <ChangeLogModal 
+            isOpen={isChangeLogOpen}
+            onClose={() => setIsChangeLogOpen(false)}
+            logs={MOCK_TEMPLATE_CHANGE_LOGS}
+            title="变更记录"
+            breadcrumb="绩效面谈 / 模板配置 / 操作日志"
         />
     </div>
   );

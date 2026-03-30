@@ -236,4 +236,16 @@ export interface HistoricalRecord {
   type: string;
   manager: string;
   summary: string;
+  templateId?: string;
+  content?: Record<string, any>;
+}
+
+export interface ChangeLogRecord {
+  id: string;
+  operationType: string;
+  content: string;
+  operator: string;
+  timestamp: string;
+  module?: string;
+  result?: string;
 }

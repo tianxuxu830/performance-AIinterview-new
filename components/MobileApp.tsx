@@ -11,6 +11,7 @@ import {
 import { InterviewSession, Status } from '../types';
 import { MOCK_TEMPLATES, MOCK_ASSESSMENT_DETAILS, MOCK_HISTORY_RECORDS, MOCK_PERFORMANCE_TRENDS } from '../constants';
 import InterviewDetailMobile from './InterviewDetailMobile';
+import FeedbackFormMobile from './FeedbackFormMobile';
 
 interface MobileAppProps {
   sessions: InterviewSession[];
@@ -556,27 +557,8 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
       if (!selectedHistoryRecord) return null;
       const member = teamMembers.find(m => m.id === selectedTeamMember);
       
-      // Mock breakdown data for the detailed view, matching AssessmentDetailMobile style
-      const mockBreakdown = [
-          {
-              id: 'd1',
-              name: '业绩指标',
-              weight: 60,
-              indicators: [
-                  { id: 'i1', name: '销售额达成率', weight: 40, target: '100%', actual: '105%', score: 100 },
-                  { id: 'i2', name: '新客户开发数', weight: 20, target: '10个', actual: '12个', score: 100 }
-              ]
-          },
-          {
-              id: 'd2',
-              name: '能力素质',
-              weight: 40,
-              indicators: [
-                  { id: 'i3', name: '团队协作', weight: 20, target: '良好', actual: '优秀', score: 95 },
-                  { id: 'i4', name: '专业技能', weight: 20, target: '达标', actual: '达标', score: 90 }
-              ]
-          }
-      ];
+      const template = MOCK_TEMPLATES.find(t => t.id === selectedHistoryRecord.templateId) || MOCK_TEMPLATES[0];
+      const feedbackFormValues = selectedHistoryRecord.content || {};
 
       return (
           <div className="flex-1 bg-[#F7F8FA] flex flex-col overflow-hidden animate-in slide-in-from-right duration-300 relative z-30">
@@ -587,13 +569,7 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
                       className="text-[#1D2129] cursor-pointer mr-2" 
                       onClick={() => setTeamMemberView('detail')} 
                   />
-                  <span className="text-base font-bold text-[#1D2129] flex-1">考核详情</span>
-                  <div className="flex items-center">
-                      <span className="text-[11px] text-[#86909C] mr-1.5">明细</span>
-                      <div className="w-8 h-4 bg-[#00B294] rounded-full relative">
-                          <div className="absolute right-0.5 top-0.5 w-3 h-3 bg-white rounded-full shadow-sm" />
-                      </div>
-                  </div>
+                  <span className="text-base font-bold text-[#1D2129] flex-1">面谈详情</span>
               </div>
 
               <div className="flex-1 overflow-y-auto custom-scrollbar">
@@ -606,7 +582,7 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
                           <div className="flex-1">
                               <div className="flex items-center justify-between mb-1">
                                   <h3 className="font-bold text-[#1D2129] text-base">{member?.name}</h3>
-                                  <span className="text-lg font-bold text-[#00B294]">{selectedHistoryRecord.grade}</span>
+                                  <span className="text-sm font-bold text-[#00B294]">已完成</span>
                               </div>
                               <div className="flex items-center text-xs text-[#86909C]">
                                   <span>{member?.employeeId}</span>
@@ -616,75 +592,34 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
                           </div>
                       </div>
                       
-                      <div className="grid grid-cols-3 gap-4 py-3 border-t border-gray-50">
-                          <div className="text-center">
-                              <div className="text-[10px] text-[#86909C] mb-1">最终得分</div>
-                              <div className="text-sm font-bold text-[#1D2129]">{selectedHistoryRecord.score}</div>
-                          </div>
-                          <div className="text-center border-x border-gray-50">
-                              <div className="text-[10px] text-[#86909C] mb-1">考核等级</div>
-                              <div className="text-sm font-bold text-[#1D2129]">{selectedHistoryRecord.grade}</div>
+                      <div className="grid grid-cols-2 gap-4 py-3 border-t border-gray-50">
+                          <div className="text-center border-r border-gray-50">
+                              <div className="text-[10px] text-[#86909C] mb-1">面谈类型</div>
+                              <div className="text-sm font-bold text-[#1D2129]">{selectedHistoryRecord.type}</div>
                           </div>
                           <div className="text-center">
-                              <div className="text-[10px] text-[#86909C] mb-1">面谈状态</div>
-                              <div className="text-sm font-bold text-[#00B294]">已完成</div>
+                              <div className="text-[10px] text-[#86909C] mb-1">面谈官</div>
+                              <div className="text-sm font-bold text-[#1D2129]">{selectedHistoryRecord.manager}</div>
                           </div>
                       </div>
                   </div>
 
-                  {/* Breakdown Sections */}
-                  <div className="px-3 pb-6 space-y-3">
-                      {mockBreakdown.map((dim) => (
-                          <div key={dim.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                              <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
-                                  <h4 className="text-[13px] font-bold text-[#1D2129]">
-                                      {dim.name} <span className="text-[#86909C] font-normal text-[11px]">({dim.weight}%)</span>
-                                  </h4>
-                                  <span className="text-[11px] text-[#00B294] font-medium">得分: {dim.indicators.reduce((acc, i) => acc + i.score, 0) / dim.indicators.length}</span>
-                              </div>
-                              <div className="p-4 space-y-5">
-                                  {dim.indicators.map((indicator, iIdx) => (
-                                      <div key={indicator.id} className="relative">
-                                          <div className="flex items-start mb-3">
-                                              <div className="w-[3px] h-[14px] bg-[#00B294] rounded-full mr-2 mt-[3px] shrink-0" />
-                                              <div className="flex-1">
-                                                  <div className="flex items-center justify-between mb-1">
-                                                      <h5 className="text-[13px] font-bold text-[#1D2129]">{indicator.name}</h5>
-                                                      <span className="text-[12px] font-bold text-[#1D2129]">{indicator.score}分</span>
-                                                  </div>
-                                                  <div className="inline-flex px-2 py-0.5 bg-[#F2F3F5] rounded text-[10px] text-[#4E5969] font-medium">
-                                                      权重 {indicator.weight}%
-                                                  </div>
-                                              </div>
-                                          </div>
-                                          <div className="space-y-2 pl-[11px]">
-                                              <div className="flex items-center text-[12px]">
-                                                  <span className="text-[#86909C] w-16">目标值</span>
-                                                  <span className="text-[#4E5969]">{indicator.target}</span>
-                                              </div>
-                                              <div className="flex items-center text-[12px]">
-                                                  <span className="text-[#86909C] w-16">实际完成</span>
-                                                  <span className="text-[#4E5969] font-medium">{indicator.actual}</span>
-                                              </div>
-                                          </div>
-                                          {iIdx < dim.indicators.length - 1 && (
-                                              <div className="mt-5 border-t border-dashed border-gray-100" />
-                                          )}
-                                      </div>
-                                  ))}
-                              </div>
-                          </div>
-                      ))}
-
-                      {/* Summary Section */}
+                  {/* Feedback Form Details */}
+                  <div className="px-3 pb-6">
                       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                          <h4 className="text-[13px] font-bold text-[#1D2129] mb-3 flex items-center">
-                              <Sparkles size={14} className="text-orange-400 mr-1.5" />
-                              面谈总结
+                          <h4 className="text-[14px] font-bold text-[#1D2129] mb-4 flex items-center">
+                              <div className="w-1 h-3.5 bg-[#00B294] rounded-full mr-2" />
+                              面谈反馈表
                           </h4>
-                          <div className="text-[12px] text-[#4E5969] leading-relaxed bg-[#F9FAFB] p-3 rounded-lg border border-gray-50">
-                              {selectedHistoryRecord.summary}
-                          </div>
+                          <FeedbackFormMobile 
+                              template={template}
+                              feedbackFormValues={feedbackFormValues}
+                              setFeedbackFormValues={() => {}}
+                              isGeneratingAI={null}
+                              hasGeneratedAI={false}
+                              handleGlobalAIGenerate={() => {}}
+                              readOnly={true}
+                          />
                       </div>
                   </div>
               </div>
@@ -799,12 +734,9 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
                                           </div>
                                           <span className="text-[11px] text-[#86909C]">{record.date}</span>
                                       </div>
-                                      <div className="flex items-center text-[11px] text-[#4E5969] mb-3">
+                                      <div className="flex items-center text-[11px] text-[#4E5969]">
                                           <span className="bg-[#F2F3F5] px-2 py-0.5 rounded mr-2">面谈官: {record.manager}</span>
                                           <span className="bg-[#F2F3F5] px-2 py-0.5 rounded">状态: 已完成</span>
-                                      </div>
-                                      <div className="bg-[#F7F8FA] p-3 rounded-lg text-[11px] text-[#4E5969] leading-relaxed line-clamp-2 border border-gray-50">
-                                          {record.summary}
                                       </div>
                                   </div>
                               ))

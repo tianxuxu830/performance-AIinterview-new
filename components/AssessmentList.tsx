@@ -8,8 +8,9 @@ import {
     Briefcase, PlayCircle, CheckCircle, ArrowLeft,
     MessageSquare, Mail, AlertTriangle
 } from 'lucide-react';
-import { MOCK_ASSESSMENTS, MOCK_PERFORMANCE_TRENDS, MOCK_EMPLOYEES } from '../constants';
+import { MOCK_ASSESSMENTS, MOCK_PERFORMANCE_TRENDS, MOCK_EMPLOYEES, MOCK_CHANGE_LOGS } from '../constants';
 import { InterviewSession, Status } from '../types';
+import ChangeLogModal from './ChangeLogModal';
 
 interface AssessmentListProps {
   onInitiateInterview: (employeeIds: string[]) => void;
@@ -56,6 +57,9 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
   const [sessionToCancel, setSessionToCancel] = useState<InterviewSession | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [notifyStakeholders, setNotifyStakeholders] = useState(true);
+
+  // Change Log Modal State
+  const [isChangeLogOpen, setIsChangeLogOpen] = useState(false);
 
   // Form States for Modals
   const [batchDate, setBatchDate] = useState('');
@@ -732,6 +736,13 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
                     面谈数据将自动同步至【待办-绩效面谈】列表中，相关人员可前往处理。
                 </div>
                  <div className="flex items-center space-x-2">
+                    <button 
+                        onClick={() => setIsChangeLogOpen(true)}
+                        className="px-3 py-1.5 text-gray-600 bg-white border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors flex items-center font-medium"
+                    >
+                        <Clock size={14} className="mr-1.5" />
+                        变更记录
+                    </button>
                     {/* Batch Operations Dropdown */}
                     <div className="relative group">
                         <button className={`px-3 py-1.5 bg-white border border-gray-300 rounded text-sm flex items-center transition-all animate-in fade-in ${interviewSelectedIds.size === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'}`}>
@@ -1247,6 +1258,13 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
           </div>
       )}
 
+      <ChangeLogModal 
+          isOpen={isChangeLogOpen}
+          onClose={() => setIsChangeLogOpen(false)}
+          logs={MOCK_CHANGE_LOGS}
+          title="变更记录"
+          breadcrumb="考核管理 / 任务管理 / 绩效面谈 / 操作日志"
+      />
     </div>
   );
 };

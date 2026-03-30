@@ -1,5 +1,5 @@
 
-import { Employee, InterviewSession, InterviewTemplate, Status, InterviewType, PerformanceRecord, AssessmentItem, AssessmentDetail, PerformanceTrend, HistoricalRecord } from './types';
+import { Employee, InterviewSession, InterviewTemplate, Status, InterviewType, PerformanceRecord, AssessmentItem, AssessmentDetail, PerformanceTrend, HistoricalRecord, ChangeLogRecord } from './types';
 
 export const MOCK_EMPLOYEES: Employee[] = [
   { 
@@ -682,10 +682,87 @@ export const MOCK_PERFORMANCE_TRENDS: Record<string, PerformanceTrend[]> = {
     ]
 };
 
+export const MOCK_CHANGE_LOGS: ChangeLogRecord[] = [
+    {
+        id: 'cl1',
+        operationType: '状态变更',
+        content: '面谈状态由“待面谈”变更为“已完成”',
+        operator: '张三 (HR)',
+        timestamp: '2025-10-24 14:30:00',
+        module: '绩效面谈',
+        result: '成功'
+    },
+    {
+        id: 'cl2',
+        operationType: '修改面谈时间',
+        content: '面谈时间由“2025-10-24 10:00”修改为“2025-10-24 14:00”',
+        operator: '李四 (部门经理)',
+        timestamp: '2025-10-23 09:15:22',
+        module: '绩效面谈',
+        result: '成功'
+    },
+    {
+        id: 'cl3',
+        operationType: '创建面谈任务',
+        content: '发起了“2025 Q3 绩效面谈”任务',
+        operator: '张三 (HR)',
+        timestamp: '2025-10-20 10:00:00',
+        module: '绩效面谈',
+        result: '成功'
+    }
+];
+
+export const MOCK_TEMPLATE_CHANGE_LOGS: ChangeLogRecord[] = [
+    {
+        id: 'tcl1',
+        operationType: '修改模板',
+        content: '更新了“核心价值观”考核维度的权重，由 20% 调整为 30%',
+        operator: '王五 (系统管理员)',
+        timestamp: '2025-09-15 16:45:10',
+        module: '面谈模板',
+        result: '成功'
+    },
+    {
+        id: 'tcl2',
+        operationType: '创建模板',
+        content: '创建了“标准绩效面谈模板”',
+        operator: '王五 (系统管理员)',
+        timestamp: '2025-01-10 09:00:00',
+        module: '面谈模板',
+        result: '成功'
+    }
+];
+
 export const MOCK_HISTORY_RECORDS: Record<string, HistoricalRecord[]> = {
     '1': [
-        { id: 'h1', date: '2025-10-10', type: '季度绩效面谈', manager: '管理员', summary: '表现稳定，重点讨论了Q4的产品规划，对于团队协作方面提出了更高的要求。' },
-        { id: 'h2', date: '2025-07-12', type: '季度绩效面谈', manager: '管理员', summary: 'Q3目标达成率100%，建议加强跨部门沟通。' },
+        { 
+            id: 'h1', 
+            date: '2025-10-10', 
+            type: '季度绩效面谈', 
+            manager: '管理员', 
+            summary: '表现稳定，重点讨论了Q4的产品规划，对于团队协作方面提出了更高的要求。',
+            templateId: 't1',
+            content: {
+                'sec1_summary': '表现稳定，重点讨论了Q4的产品规划，对于团队协作方面提出了更高的要求。',
+                'sec2_achievements': '1. 成功主导了 Q3 核心版本的发布。\n2. 优化了前端构建流程。',
+                'sec3_improvements': '跨部门沟通时需更加主动，避免信息滞后。',
+                'sec4_plan': '制定详细的 Q4 个人成长计划。'
+            }
+        },
+        { 
+            id: 'h2', 
+            date: '2025-07-12', 
+            type: '季度绩效面谈', 
+            manager: '管理员', 
+            summary: 'Q3目标达成率100%，建议加强跨部门沟通。',
+            templateId: 't1',
+            content: {
+                'sec1_summary': 'Q3目标达成率100%，建议加强跨部门沟通。',
+                'sec2_achievements': '1. 完成了 Q2 的所有 KPI。',
+                'sec3_improvements': '需要提升技术预研能力。',
+                'sec4_plan': '参与开源社区贡献。'
+            }
+        },
     ],
     'default': []
 };

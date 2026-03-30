@@ -8,7 +8,8 @@ import {
   MessageSquare, Mail
 } from 'lucide-react';
 import { InterviewSession, Status, InterviewType, HistoricalRecord } from '../types';
-import { MOCK_HISTORY_RECORDS, MOCK_TEMPLATES, MOCK_EMPLOYEES, MOCK_PERFORMANCE_RECORDS } from '../constants';
+import { MOCK_HISTORY_RECORDS, MOCK_TEMPLATES, MOCK_EMPLOYEES, MOCK_PERFORMANCE_RECORDS, MOCK_CHANGE_LOGS } from '../constants';
+import ChangeLogModal from './ChangeLogModal';
 
 interface InterviewListProps {
   sessions: InterviewSession[];
@@ -57,8 +58,12 @@ const InterviewList: React.FC<InterviewListProps> = ({
   const [editForm, setEditForm] = useState({
       topic: '',
       managerName: '',
-      deadline: ''
+      deadline: '',
+      date: ''
   });
+
+  // Change Log Modal State
+  const [isChangeLogOpen, setIsChangeLogOpen] = useState(false);
 
   // Batch Modal States
   const [isBatchTimeModalOpen, setIsBatchTimeModalOpen] = useState(false);
@@ -556,6 +561,13 @@ const InterviewList: React.FC<InterviewListProps> = ({
                         </div>
                     )}
                 </div>
+                <button 
+                    onClick={() => setIsChangeLogOpen(true)}
+                    className="px-4 py-1.5 bg-white border border-gray-300 text-gray-600 rounded text-sm font-medium hover:bg-gray-50 hover:text-primary hover:border-primary-300 transition-colors flex items-center"
+                >
+                    <Clock size={16} className="mr-1" />
+                    变更记录
+                </button>
                 <button 
                     onClick={onOpenTemplates}
                     className="px-4 py-1.5 bg-white border border-gray-300 text-gray-600 rounded text-sm font-medium hover:bg-gray-50 hover:text-primary hover:border-primary-300 transition-colors"
@@ -1210,6 +1222,13 @@ const InterviewList: React.FC<InterviewListProps> = ({
           </div>
       )}
 
+      <ChangeLogModal 
+          isOpen={isChangeLogOpen}
+          onClose={() => setIsChangeLogOpen(false)}
+          logs={MOCK_CHANGE_LOGS}
+          title="变更记录"
+          breadcrumb="绩效面谈 / 操作日志"
+      />
     </div>
   );
 };
