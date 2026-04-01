@@ -19,6 +19,8 @@ interface InterviewListProps {
   onScheduleSession: (session: InterviewSession) => void;
   onDirectFeedback: (session: InterviewSession) => void;
   onCancelSession: (sessionId: string) => void;
+  onDeleteSession: (sessionId: string) => void;
+  onBatchCancelSessions?: (sessionIds: string[]) => void;
 }
 
 const InterviewList: React.FC<InterviewListProps> = ({ 
@@ -28,9 +30,11 @@ const InterviewList: React.FC<InterviewListProps> = ({
   onOpenTemplates, 
   onScheduleSession, 
   onDirectFeedback,
-  onCancelSession
+  onCancelSession,
+  onDeleteSession,
+  onBatchCancelSessions
 }) => {
-  type TabType = 'all' | 'schedule' | 'start' | 'feedback' | 'done';
+  type TabType = 'all' | 'schedule' | 'start' | 'feedback' | 'done' | 'cancelled';
   const [activeTab, setActiveTab] = useState<TabType>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -92,13 +96,18 @@ const InterviewList: React.FC<InterviewListProps> = ({
 
   const handleBatchCancel = () => {
       if (selectedIds.size === 0) return;
+      setBatchCancelReason('');
+      setBatchNotifyStakeholders(true);
       setIsBatchCancelModalOpen(true);
   };
 
   const confirmBatchCancel = () => {
-      if (!batchCancelReason.trim()) {
-          alert('请填写取消原因');
+      if (!batchCancelReason.trim() || batchCancelReason.length < 2 || batchCancelReason.length > 2000) {
+          alert('请填写2~2000字的取消原因');
           return;
+      }
+      if (onBatchCancelSessions) {
+          onBatchCancelSessions(Array.from(selectedIds));
       }
       alert(`批量取消成功，共取消 ${selectedIds.size} 条任务。`);
       setIsBatchCancelModalOpen(false);
@@ -153,6 +162,9 @@ const InterviewList: React.FC<InterviewListProps> = ({
             // 已完成: 已完成
             matchesTab = session.status === Status.Completed;
             break;
+        case 'cancelled':
+            matchesTab = session.status === Status.Cancelled;
+            break;
     }
     
     // Search Filter
@@ -170,6 +182,7 @@ const InterviewList: React.FC<InterviewListProps> = ({
         if (tab === 'start') return session.status === Status.NotStarted && session.schedulingStatus === 'scheduled';
         if (tab === 'feedback') return session.status === Status.InProgress || session.status === Status.PendingConfirmation;
         if (tab === 'done') return session.status === Status.Completed;
+        if (tab === 'cancelled') return session.status === Status.Cancelled;
         return false;
       }).length;
   };
@@ -227,12 +240,14 @@ const InterviewList: React.FC<InterviewListProps> = ({
       e.stopPropagation();
       setOpenActionId(null);
       setSessionToCancel(session);
+      setCancelReason('');
+      setNotifyStakeholders(true);
       setCancelModalOpen(true);
   };
 
   const confirmCancel = () => {
-      if (!cancelReason.trim() || cancelReason.length < 2 || cancelReason.length > 200) {
-          alert('请填写2~200字的取消原因。');
+      if (!cancelReason.trim() || cancelReason.length < 2 || cancelReason.length > 2000) {
+          alert('请填写2~2000字的取消原因。');
           return;
       }
       if (sessionToCancel) {
@@ -432,6 +447,11 @@ const InterviewList: React.FC<InterviewListProps> = ({
               { label: '直接反馈', onClick: () => onDirectFeedback(session), variant: 'default' },
               { label: '取消', onClick: (e) => handleCancelClick(e, session), variant: 'danger' },
           ];
+      } else if (session.status === Status.Cancelled) {
+          actions = [
+              { label: '查看详情', onClick: () => onSelectSession(session), variant: 'primary' },
+              { label: '删除', onClick: (e) => { e.stopPropagation(); onDeleteSession(session.id); }, variant: 'danger' },
+          ];
       } else if (isInProgress) {
           actions = [
               { label: '查看详情', onClick: () => onSelectSession(session), variant: 'primary' },
@@ -525,6 +545,7 @@ const InterviewList: React.FC<InterviewListProps> = ({
             <TabItem active={activeTab === 'start'} onClick={() => setActiveTab('start')} label="待开始" count={getCount('start')} />
             <TabItem active={activeTab === 'feedback'} onClick={() => setActiveTab('feedback')} label="待反馈" count={getCount('feedback')} />
             <TabItem active={activeTab === 'done'} onClick={() => setActiveTab('done')} label="已完成" count={getCount('done')} />
+            <TabItem active={activeTab === 'cancelled'} onClick={() => setActiveTab('cancelled')} label="已取消" count={getCount('cancelled')} />
         </div>
 
         {/* Action Bar */}
@@ -557,6 +578,9 @@ const InterviewList: React.FC<InterviewListProps> = ({
                             </button>
                             <button onClick={() => setIsBatchInterviewerModalOpen(true)} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center">
                                 <User size={14} className="mr-2" /> 批量更换面谈官
+                            </button>
+                            <button onClick={handleBatchCancel} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center text-red-600 hover:bg-red-50">
+                                <AlertTriangle size={14} className="mr-2" /> 批量取消
                             </button>
                         </div>
                     )}
@@ -839,12 +863,12 @@ const InterviewList: React.FC<InterviewListProps> = ({
                           <textarea
                               className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all"
                               rows={3}
-                              placeholder="请输入取消原因（2-200字）..."
+                              placeholder="请输入取消原因（2-2000字）..."
                               value={cancelReason}
                               onChange={(e) => setCancelReason(e.target.value)}
                           />
                           <div className="text-xs text-gray-400 text-right mt-1">
-                              {cancelReason.length}/200
+                              {cancelReason.length}/2000
                           </div>
                       </div>
 
@@ -875,7 +899,12 @@ const InterviewList: React.FC<InterviewListProps> = ({
                       </button>
                       <button 
                           onClick={confirmCancel}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 shadow-sm transition-colors"
+                          className={`px-4 py-2 rounded-lg text-sm font-medium text-white shadow-sm transition-colors ${
+                              cancelReason.length >= 2 && cancelReason.length <= 2000
+                                  ? 'bg-red-600 hover:bg-red-700'
+                                  : 'bg-red-300 cursor-not-allowed'
+                          }`}
+                          disabled={cancelReason.length < 2 || cancelReason.length > 2000}
                       >
                           确认取消
                       </button>
@@ -1187,17 +1216,38 @@ const InterviewList: React.FC<InterviewListProps> = ({
                   </div>
 
                   <div className="space-y-4 mb-6">
+                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+                          <div className="flex">
+                              <span className="text-sm text-gray-500 w-20 shrink-0">面谈对象：</span>
+                              <span className="text-sm text-gray-900 font-medium break-words">
+                                  {sessions.filter(s => selectedIds.has(s.id)).map(s => s.employeeName).join('、')}
+                              </span>
+                          </div>
+                          <div className="flex">
+                              <span className="text-sm text-gray-500 w-20 shrink-0">面谈主题：</span>
+                              <span className="text-sm text-gray-900 font-medium break-words">
+                                  {Array.from(new Set(sessions.filter(s => selectedIds.has(s.id)).map(s => s.period))).join('、')}
+                              </span>
+                          </div>
+                          <div className="flex">
+                              <span className="text-sm text-gray-500 w-20 shrink-0">当前状态：</span>
+                              <span className="text-sm text-gray-900 font-medium">
+                                  {Array.from(new Set(sessions.filter(s => selectedIds.has(s.id)).map(s => s.status))).join('、')}
+                              </span>
+                          </div>
+                      </div>
+
                       <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">取消原因 <span className="text-red-500">*</span></label>
                           <textarea 
                               className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
                               rows={3}
-                              placeholder="请输入取消原因（2-200字）..."
+                              placeholder="请输入取消原因（2-2000字）..."
                               value={batchCancelReason}
                               onChange={(e) => setBatchCancelReason(e.target.value)}
                           />
                           <div className="text-xs text-gray-400 text-right mt-1">
-                              {batchCancelReason.length}/200
+                              {batchCancelReason.length}/2000
                           </div>
                       </div>
 
@@ -1216,7 +1266,17 @@ const InterviewList: React.FC<InterviewListProps> = ({
 
                   <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                       <button onClick={() => setIsBatchCancelModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium">暂不取消</button>
-                      <button onClick={confirmBatchCancel} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 shadow-sm">确认取消</button>
+                      <button 
+                          onClick={confirmBatchCancel} 
+                          className={`px-4 py-2 rounded-lg text-sm font-medium text-white shadow-sm transition-colors ${
+                              batchCancelReason.length >= 2 && batchCancelReason.length <= 2000
+                                  ? 'bg-red-600 hover:bg-red-700'
+                                  : 'bg-red-300 cursor-not-allowed'
+                          }`}
+                          disabled={batchCancelReason.length < 2 || batchCancelReason.length > 2000}
+                      >
+                          确认取消
+                      </button>
                   </div>
               </div>
           </div>

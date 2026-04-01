@@ -5,7 +5,8 @@ export enum Status {
   InProgress = '进行中',
   PendingConfirmation = '待确认',
   Completed = '已完成',
-  Archived = '已归档'
+  Archived = '已归档',
+  Cancelled = '已取消'
 }
 
 export enum InterviewType {
@@ -93,6 +94,7 @@ export interface InterviewSession {
   requireConfirmation?: boolean;
   signatureType?: 'confirmation' | 'handwritten' | 'electronic'; 
   shareConfig?: ShareConfig; // New: visibility and permission settings
+  cancelReason?: string;
 }
 
 export interface AssessmentItem {

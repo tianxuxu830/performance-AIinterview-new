@@ -252,6 +252,14 @@ function App() {
   };
 
   const handleCancelSession = (sessionId: string) => {
+      setSessions(prev => prev.map(s => s.id === sessionId ? { ...s, status: Status.Cancelled } : s));
+  };
+
+  const handleBatchCancelSessions = (sessionIds: string[]) => {
+      setSessions(prev => prev.map(s => sessionIds.includes(s.id) ? { ...s, status: Status.Cancelled } : s));
+  };
+
+  const handleDeleteSession = (sessionId: string) => {
       setSessions(prev => prev.filter(s => s.id !== sessionId));
   };
 
@@ -299,7 +307,7 @@ function App() {
         }
 
         if (activePage === 'interviews') {
-            return <InterviewList sessions={sessions} onSelectSession={handleSelectSession} onCreateNew={() => { setNewInterviewInitialEmployees([]); setNewInterviewDefaultTopic('绩效面谈'); setIsNewInterviewModalOpen(true); }} onOpenTemplates={() => setActivePage('template_config')} onScheduleSession={handleOpenScheduleModal} onDirectFeedback={handleDirectFeedback} onCancelSession={handleCancelSession} />;
+            return <InterviewList sessions={sessions} onSelectSession={handleSelectSession} onCreateNew={() => { setNewInterviewInitialEmployees([]); setNewInterviewDefaultTopic('绩效面谈'); setIsNewInterviewModalOpen(true); }} onOpenTemplates={() => setActivePage('template_config')} onScheduleSession={handleOpenScheduleModal} onDirectFeedback={handleDirectFeedback} onCancelSession={handleCancelSession} onDeleteSession={handleDeleteSession} onBatchCancelSessions={handleBatchCancelSessions} />;
         }
 
         const type = activePage === 'todo_interviews' ? 'interviews' : activePage === 'todo_plans' ? 'plans' : 'reviews';
@@ -334,7 +342,7 @@ function App() {
       <NewInterviewModal isOpen={isNewInterviewModalOpen} onClose={() => setIsNewInterviewModalOpen(false)} onSubmit={handleNewInterviewSubmit} initialEmployeeIds={newInterviewInitialEmployees} defaultTopic={newInterviewDefaultTopic} />
       <ScheduleMeetingModal isOpen={isScheduleModalOpen} onClose={() => setScheduleModalOpen(false)} onConfirm={handleConfirmSchedule} session={scheduleTargetSession} />
       {/* Mobile Simulation Overlay */}
-      {isMobileMode && <MobileApp sessions={sessions} onClose={() => setIsMobileMode(false)} />}
+      {isMobileMode && <MobileApp sessions={sessions} onClose={() => setIsMobileMode(false)} onCancelSession={handleCancelSession} onDeleteSession={handleDeleteSession} />}
     </div>
   );
 }

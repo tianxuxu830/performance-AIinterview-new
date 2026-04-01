@@ -5,6 +5,7 @@ import { MOCK_TEMPLATES, MOCK_ASSESSMENT_DETAILS } from '../constants';
 import FeedbackFormMobile from './FeedbackFormMobile';
 import PerformanceAnalysisSummary from './PerformanceAnalysisSummary';
 import AssessmentDetailMobile from './AssessmentDetailMobile';
+import MobileEmployeeCard from './MobileEmployeeCard';
 
 interface InterviewDetailMobileProps {
   session: InterviewSession;
@@ -130,34 +131,7 @@ const InterviewDetailMobile: React.FC<InterviewDetailMobileProps> = ({
 
       {/* Employee Info Card - Collapsible */}
       <div className={`bg-white px-4 shrink-0 transition-all duration-300 ease-in-out overflow-hidden ${isHeaderCollapsed ? 'pt-2 pb-0 h-14' : 'pt-4 pb-2 h-auto'}`}>
-        {isHeaderCollapsed ? (
-          <div className="flex items-center justify-between py-2 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs mr-2 border border-purple-100">
-                {session.employeeName.charAt(0)}
-              </div>
-              <span className="text-sm font-bold text-gray-900 mr-2">{session.employeeName}</span>
-              <span className="text-xs text-gray-400">{session.period}</span>
-            </div>
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded scale-90 origin-right">{statusLabel}</span>
-          </div>
-        ) : (
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 animate-in fade-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{statusLabel}</span>
-              <span className="text-xs font-bold text-gray-400">{new Date().toISOString().split('T')[0]}</span>
-            </div>
-            <div className="flex items-center">
-              <div className="w-10 h-10 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-sm mr-3 border border-purple-100">
-                {session.employeeName.charAt(0)}
-              </div>
-              <div>
-                <div className="text-sm font-bold text-gray-900">{session.employeeName}</div>
-                <div className="text-xs text-gray-500 mt-0.5">{session.period}</div>
-              </div>
-            </div>
-          </div>
-        )}
+        <MobileEmployeeCard session={session} statusLabel={statusLabel} isCollapsed={isHeaderCollapsed} />
       </div>
 
       {/* Tabs */}

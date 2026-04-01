@@ -12,10 +12,13 @@ import { InterviewSession, Status } from '../types';
 import { MOCK_TEMPLATES, MOCK_ASSESSMENT_DETAILS, MOCK_HISTORY_RECORDS, MOCK_PERFORMANCE_TRENDS } from '../constants';
 import InterviewDetailMobile from './InterviewDetailMobile';
 import FeedbackFormMobile from './FeedbackFormMobile';
+import MobileEmployeeCard from './MobileEmployeeCard';
 
 interface MobileAppProps {
   sessions: InterviewSession[];
   onClose: () => void;
+  onCancelSession?: (sessionId: string) => void;
+  onDeleteSession?: (sessionId: string) => void;
 }
 
 interface MobileFilterState {
@@ -34,11 +37,11 @@ const initialFilters: MobileFilterState = {
   endDate: '',
 };
 
-const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
+const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose, onCancelSession, onDeleteSession }) => {
   const [localSessions, setLocalSessions] = useState<InterviewSession[]>(sessions);
   const [activeTab, setActiveTab] = useState<'workbench' | 'team' | 'me'>('workbench');
   const [workbenchView, setWorkbenchView] = useState<'dashboard' | 'interviewList' | 'schedule' | 'feedback' | 'prepare' | 'confirm'>('dashboard');
-  const [interviewListTab, setInterviewListTab] = useState<'schedule' | 'start' | 'feedback' | 'confirm' | 'done'>('schedule');
+  const [interviewListTab, setInterviewListTab] = useState<'schedule' | 'start' | 'feedback' | 'confirm' | 'done' | 'cancelled'>('schedule');
   const [teamTab, setTeamTab] = useState<'subordinate' | 'org'>('subordinate');
   const [selectedTeamMember, setSelectedTeamMember] = useState<string | null>(null);
   const [teamMemberView, setTeamMemberView] = useState<'list' | 'detail' | 'record'>('list');
@@ -49,6 +52,36 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
   const [meTab, setMeTab] = useState<'active' | 'completed'>('active');
   
   const [selectedSession, setSelectedSession] = useState<InterviewSession | null>(null);
+
+  // Cancel Modal State
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [sessionToCancel, setSessionToCancel] = useState<InterviewSession | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [notifyStakeholders, setNotifyStakeholders] = useState(true);
+
+  const handleCancelClick = (e: React.MouseEvent, session: InterviewSession) => {
+      e.stopPropagation();
+      setSessionToCancel(session);
+      setCancelReason('');
+      setNotifyStakeholders(true);
+      setIsCancelModalOpen(true);
+  };
+
+  const confirmCancel = () => {
+      if (!cancelReason.trim() || cancelReason.length < 2 || cancelReason.length > 2000) {
+          alert('请填写2~2000字的取消原因。');
+          return;
+      }
+      if (sessionToCancel && onCancelSession) {
+          onCancelSession(sessionToCancel.id);
+          // Also update local sessions for immediate UI feedback
+          setLocalSessions(prev => prev.map(s => s.id === sessionToCancel.id ? { ...s, status: Status.Cancelled } : s));
+          alert('面谈任务已取消，并已从业务列表移除。');
+          setIsCancelModalOpen(false);
+          setSessionToCancel(null);
+          setCancelReason('');
+      }
+  };
 
   // Filter State
   const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
@@ -96,6 +129,7 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
           if (tab === 'feedback') return session.status === Status.InProgress;
           if (tab === 'confirm') return session.status === Status.PendingConfirmation;
           if (tab === 'done') return session.status === Status.Completed;
+          if (tab === 'cancelled') return session.status === Status.Cancelled;
           return false;
       }).length;
   };
@@ -108,6 +142,7 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
       else if (interviewListTab === 'feedback') tabMatch = session.status === Status.InProgress;
       else if (interviewListTab === 'confirm') tabMatch = session.status === Status.PendingConfirmation;
       else if (interviewListTab === 'done') tabMatch = session.status === Status.Completed;
+      else if (interviewListTab === 'cancelled') tabMatch = session.status === Status.Cancelled;
       
       if (!tabMatch) return false;
 
@@ -192,14 +227,8 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
             </div>
 
             <div className="flex-1 overflow-y-auto p-5 custom-scrollbar pb-32">
-                <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 mb-6 flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center font-bold text-blue-600 text-sm shadow-sm border border-blue-100 mr-3">
-                        {selectedSession.employeeName.charAt(0)}
-                    </div>
-                    <div>
-                        <div className="text-sm font-bold text-gray-900">{selectedSession.employeeName}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">{selectedSession.period}</div>
-                    </div>
+                <div className="mb-6">
+                    <MobileEmployeeCard session={selectedSession} statusLabel="待排期" />
                 </div>
 
                 <div className="space-y-5">
@@ -389,13 +418,14 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
 
                 {/* Tabs */}
                 <div className="bg-white px-4 pt-1 pb-0 flex items-center space-x-6 border-b border-gray-100 overflow-x-auto shrink-0 z-10 scrollbar-hide">
-                    {['schedule', 'start', 'feedback', 'confirm', 'done'].map(tabKey => {
+                    {['schedule', 'start', 'feedback', 'confirm', 'done', 'cancelled'].map(tabKey => {
                         const labels: Record<string, string> = {
                             schedule: '待排期',
                             start: '待开始',
                             feedback: '待反馈',
                             confirm: '待确认',
-                            done: '已完成'
+                            done: '已完成',
+                            cancelled: '已取消'
                         };
                         const isActive = interviewListTab === tabKey;
                         const count = getMobileTabCount(tabKey);
@@ -417,26 +447,7 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                     {mobileFilteredSessions.map(session => (
-                        <div key={session.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                            <div className="flex justify-between items-start mb-3">
-                                <div className="flex items-center">
-                                    <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm mr-3 border border-blue-100">
-                                        {session.employeeName.charAt(0)}
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-gray-900 text-sm">{session.employeeName}</h4>
-                                        <p className="text-xs text-gray-500 mt-0.5 font-medium">{session.period}</p>
-                                    </div>
-                                </div>
-                                <span className={`text-[10px] px-2 py-0.5 rounded border ${
-                                    session.status === Status.Completed ? 'bg-green-50 text-green-600 border-green-200' :
-                                    session.status === Status.InProgress ? 'bg-blue-50 text-blue-600 border-blue-200' :
-                                    'bg-gray-50 text-gray-600 border-gray-200'
-                                }`}>
-                                    {session.status}
-                                </span>
-                            </div>
-                            
+                        <MobileEmployeeCard key={session.id} session={session} statusLabel={session.status}>
                             <div className="flex items-center text-xs text-gray-500 mb-4 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
                                 {interviewListTab === 'schedule' || interviewListTab === 'start' ? (
                                     <>
@@ -454,7 +465,7 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
                             </div>
 
                             {interviewListTab !== 'done' ? (
-                                <div className="grid grid-cols-2 gap-3 pt-1">
+                                <div className="flex gap-2 pt-1">
                                     {interviewListTab === 'schedule' && (
                                         <>
                                             <button 
@@ -462,31 +473,45 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
                                                     setSelectedSession(session);
                                                     setWorkbenchView('schedule');
                                                 }}
-                                                className="flex items-center justify-center px-2 py-2 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg active:scale-95 transition-transform"
+                                                className="flex-1 flex items-center justify-center px-2 py-2 text-xs font-bold text-blue-600 bg-blue-50 border border-blue-200 rounded-lg active:scale-95 transition-transform"
                                             >
-                                                <Video size={14} className="mr-1.5" /> 预约面谈
+                                                <Video size={14} className="mr-1" /> 预约
                                             </button>
                                             <button 
                                                 onClick={() => {
                                                     setSelectedSession(session);
                                                     setWorkbenchView('feedback');
                                                 }}
-                                                className="flex items-center justify-center px-2 py-2 text-xs font-bold text-white bg-blue-600 rounded-lg shadow-sm shadow-blue-200 active:scale-95 transition-transform"
+                                                className="flex-1 flex items-center justify-center px-2 py-2 text-xs font-bold text-white bg-blue-600 rounded-lg shadow-sm shadow-blue-200 active:scale-95 transition-transform"
                                             >
-                                                <Edit3 size={14} className="mr-1.5" /> 直接反馈
+                                                <Edit3 size={14} className="mr-1" /> 反馈
+                                            </button>
+                                            <button 
+                                                onClick={(e) => handleCancelClick(e, session)}
+                                                className="flex-1 flex items-center justify-center px-2 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg active:scale-95 transition-transform"
+                                            >
+                                                取消
                                             </button>
                                         </>
                                     )}
                                     {interviewListTab === 'start' && (
-                                        <button 
-                                            onClick={() => {
-                                                setSelectedSession(session);
-                                                setWorkbenchView('prepare');
-                                            }}
-                                            className="col-span-2 flex items-center justify-center px-2 py-2 text-xs font-bold text-white bg-blue-600 rounded-lg shadow-sm shadow-blue-200 active:scale-95 transition-transform"
-                                        >
-                                            <FileText size={14} className="mr-1.5" /> 查看详情
-                                        </button>
+                                        <>
+                                            <button 
+                                                onClick={() => {
+                                                    setSelectedSession(session);
+                                                    setWorkbenchView('prepare');
+                                                }}
+                                                className="flex-1 flex items-center justify-center px-2 py-2 text-xs font-bold text-white bg-blue-600 rounded-lg shadow-sm shadow-blue-200 active:scale-95 transition-transform"
+                                            >
+                                                <FileText size={14} className="mr-1" /> 查看详情
+                                            </button>
+                                            <button 
+                                                onClick={(e) => handleCancelClick(e, session)}
+                                                className="flex-1 flex items-center justify-center px-2 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg active:scale-95 transition-transform"
+                                            >
+                                                取消
+                                            </button>
+                                        </>
                                     )}
                                     {interviewListTab === 'feedback' && (
                                         <button 
@@ -494,7 +519,7 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
                                                 setSelectedSession(session);
                                                 setWorkbenchView('feedback');
                                             }}
-                                            className="col-span-2 flex items-center justify-center px-2 py-2 text-xs font-bold text-white bg-blue-600 rounded-lg shadow-sm shadow-blue-200 active:scale-95 transition-transform"
+                                            className="w-full flex items-center justify-center px-2 py-2 text-xs font-bold text-white bg-blue-600 rounded-lg shadow-sm shadow-blue-200 active:scale-95 transition-transform"
                                         >
                                             <Edit3 size={14} className="mr-1.5" /> 填写反馈
                                         </button>
@@ -505,9 +530,23 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
                                                 setSelectedSession(session);
                                                 setWorkbenchView('confirm');
                                             }}
-                                            className="col-span-2 flex items-center justify-center px-2 py-2 text-xs font-bold text-white bg-blue-600 rounded-lg shadow-sm shadow-blue-200 active:scale-95 transition-transform"
+                                            className="w-full flex items-center justify-center px-2 py-2 text-xs font-bold text-white bg-blue-600 rounded-lg shadow-sm shadow-blue-200 active:scale-95 transition-transform"
                                         >
                                             <CheckCircle2 size={14} className="mr-1.5" /> 确认结果
+                                        </button>
+                                    )}
+                                    {interviewListTab === 'cancelled' && (
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (onDeleteSession) {
+                                                    onDeleteSession(session.id);
+                                                    setLocalSessions(prev => prev.filter(s => s.id !== session.id));
+                                                }
+                                            }}
+                                            className="w-full flex items-center justify-center px-2 py-2 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg active:scale-95 transition-transform"
+                                        >
+                                            删除
                                         </button>
                                     )}
                                 </div>
@@ -518,7 +557,7 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
                                     查看详情
                                 </button>
                             )}
-                        </div>
+                        </MobileEmployeeCard>
                     ))}
                     {mobileFilteredSessions.length === 0 && (
                         <div className="flex flex-col items-center justify-center h-64 text-gray-400">
@@ -529,7 +568,8 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
                                 interviewListTab === 'schedule' ? '待排期' :
                                 interviewListTab === 'start' ? '待开始' :
                                 interviewListTab === 'feedback' ? '待反馈' :
-                                interviewListTab === 'confirm' ? '待确认' : '已完成'
+                                interviewListTab === 'confirm' ? '待确认' :
+                                interviewListTab === 'cancelled' ? '已取消' : '已完成'
                             }任务</p>
                         </div>
                     )}
@@ -1080,6 +1120,87 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose }) => {
             
             {/* Modal Layer */}
             {renderFilterDrawer()}
+
+            {/* Cancel Modal */}
+            {isCancelModalOpen && sessionToCancel && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-sm overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                            <h3 className="font-bold text-gray-900">取消面谈</h3>
+                            <button onClick={() => setIsCancelModalOpen(false)} className="text-gray-400 hover:text-gray-600 p-1">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="p-4 overflow-y-auto flex-1 space-y-4">
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">面谈对象</label>
+                                    <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                                        {sessionToCancel.employeeName} ({sessionToCancel.department || '未分配部门'})
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">面谈主题</label>
+                                    <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                                        {sessionToCancel.period}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1">当前状态</label>
+                                    <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-100">
+                                        {sessionToCancel.status}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">取消原因 <span className="text-red-500">*</span></label>
+                                    <textarea 
+                                        className="w-full border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none transition-shadow"
+                                        rows={4}
+                                        placeholder="请填写取消原因（2~2000字）"
+                                        value={cancelReason}
+                                        onChange={(e) => setCancelReason(e.target.value)}
+                                        maxLength={2000}
+                                    />
+                                    <div className="text-right text-[10px] text-gray-400 mt-1">
+                                        {cancelReason.length} / 2000
+                                    </div>
+                                </div>
+                                <div className="flex items-center pt-1">
+                                    <input 
+                                        type="checkbox" 
+                                        id="notifyStakeholdersMobile"
+                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        checked={notifyStakeholders}
+                                        onChange={(e) => setNotifyStakeholders(e.target.checked)}
+                                    />
+                                    <label htmlFor="notifyStakeholdersMobile" className="ml-2 text-sm text-gray-700">
+                                        是否通知相关人
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-gray-100 flex gap-3 shrink-0 bg-white">
+                            <button 
+                                onClick={() => setIsCancelModalOpen(false)}
+                                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-lg text-sm font-bold hover:bg-gray-50 transition-colors"
+                            >
+                                取消
+                            </button>
+                            <button 
+                                onClick={confirmCancel}
+                                className={`flex-1 px-4 py-2.5 rounded-lg text-sm font-bold text-white transition-colors shadow-sm ${
+                                    cancelReason.length >= 2 && cancelReason.length <= 2000
+                                        ? 'bg-blue-600 hover:bg-blue-700 shadow-blue-200' 
+                                        : 'bg-blue-300 cursor-not-allowed'
+                                }`}
+                                disabled={cancelReason.length < 2 || cancelReason.length > 2000}
+                            >
+                                确认取消
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Home Indicator */}
             <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-gray-900 rounded-full z-30 pointer-events-none opacity-20"></div>
