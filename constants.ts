@@ -1,5 +1,5 @@
 
-import { Employee, InterviewSession, InterviewTemplate, Status, InterviewType, PerformanceRecord, AssessmentItem, AssessmentDetail, PerformanceTrend, HistoricalRecord, ChangeLogRecord } from './types';
+import { Employee, InterviewSession, InterviewTemplate, Status, InterviewType, PerformanceRecord, AssessmentItem, AssessmentDetail, PerformanceTrend, HistoricalRecord, ChangeLogRecord, ActivityLogEntry } from './types';
 
 export const MOCK_EMPLOYEES: Employee[] = [
   { 
@@ -324,6 +324,76 @@ export const MOCK_PERFORMANCE_RECORDS: PerformanceRecord[] = [
   }
 ];
 
+export const MOCK_ACTIVITY_LOGS: ActivityLogEntry[] = [
+    {
+        id: '1',
+        type: 'system',
+        action: '发起面谈',
+        operator: '系统',
+        timestamp: '2026-04-01 09:00:00',
+        details: '系统根据绩效考核周期自动生成面谈任务。'
+    },
+    {
+        id: '2',
+        type: 'status_change',
+        action: '安排面谈时间',
+        operator: '刘工 (面谈官)',
+        timestamp: '2026-04-01 10:30:00',
+        details: '面谈时间设定为 2026-04-02 14:00 - 15:00。'
+    },
+    {
+        id: '3',
+        type: 'content_update',
+        action: '修改面谈大纲 (多字段修改)',
+        operator: '刘工 (面谈官)',
+        timestamp: '2026-04-01 11:15:00',
+        changes: [
+            { field: '面谈重点', oldValue: '讨论本季度业绩。', newValue: '讨论本季度业绩，重点关注跨部门协作。' },
+            { field: '预期目标', oldValue: '提升沟通效率。', newValue: '提升沟通效率，减少部门间摩擦。' },
+            { field: '关键指标', oldValue: '项目交付率 90%。', newValue: '项目交付率 95%。' },
+            { field: '资源支持', oldValue: '无。', newValue: '增加一名技术支持人员。' }
+        ]
+    },
+    {
+        id: '4',
+        type: 'content_update',
+        action: '修改绩效评分表 (表格明细)',
+        operator: '刘工 (面谈官)',
+        timestamp: '2026-04-01 14:00:00',
+        changes: [
+            { field: '项目 A 评分', oldValue: '3.5', newValue: '4.0', isTableDetail: true },
+            { field: '项目 B 评分', oldValue: '4.0', newValue: '4.5', isTableDetail: true },
+            { field: '项目 C 评分', oldValue: '3.0', newValue: '3.5', isTableDetail: true }
+        ]
+    },
+    {
+        id: '5',
+        type: 'status_change',
+        action: '完成面谈',
+        operator: '刘工 (面谈官)',
+        timestamp: '2026-04-02 15:10:00',
+        details: '面谈已结束，生成智能纪要。'
+    },
+    {
+        id: '6',
+        type: 'content_update',
+        action: '修改面谈反馈',
+        operator: '刘工 (面谈官)',
+        timestamp: '2026-04-02 15:30:00',
+        changes: [
+            { field: '存在的不足', oldValue: '沟通能力有待提高。', newValue: '在跨部门沟通时，需要更加主动和清晰地表达需求。' }
+        ]
+    },
+    {
+        id: '7',
+        type: 'status_change',
+        action: '提交员工确认',
+        operator: '刘工 (面谈官)',
+        timestamp: '2026-04-02 16:00:00',
+        details: '面谈反馈已提交，等待员工确认。'
+    }
+];
+
 export const MOCK_SESSIONS: InterviewSession[] = [
   {
     id: 'int_003',
@@ -341,7 +411,8 @@ export const MOCK_SESSIONS: InterviewSession[] = [
     schedulingStatus: 'scheduled',
     gradeTag: 'C',
     department: '云演示组',
-    riskTag: 'high_risk'
+    riskTag: 'high_risk',
+    activityLogs: MOCK_ACTIVITY_LOGS
   },
   {
     id: 'int_006',
@@ -357,7 +428,8 @@ export const MOCK_SESSIONS: InterviewSession[] = [
     schedulingStatus: 'scheduled',
     gradeTag: '',
     department: '云演示组',
-    riskTag: 'normal'
+    riskTag: 'normal',
+    activityLogs: MOCK_ACTIVITY_LOGS
   },
   {
     id: 'int_001',
@@ -375,7 +447,8 @@ export const MOCK_SESSIONS: InterviewSession[] = [
     schedulingStatus: 'scheduled',
     gradeTag: 'A',
     department: '产品部',
-    riskTag: 'normal'
+    riskTag: 'normal',
+    activityLogs: MOCK_ACTIVITY_LOGS
   },
   {
     id: 'int_002',
@@ -393,7 +466,8 @@ export const MOCK_SESSIONS: InterviewSession[] = [
     schedulingStatus: 'scheduled',
     gradeTag: 'S',
     department: '销售部',
-    riskTag: 'normal'
+    riskTag: 'normal',
+    activityLogs: MOCK_ACTIVITY_LOGS
   },
   {
     id: 'int_004',

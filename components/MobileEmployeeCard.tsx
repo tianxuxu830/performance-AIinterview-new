@@ -53,6 +53,11 @@ const MobileEmployeeCard: React.FC<MobileEmployeeCardProps> = ({ session, status
           <div className="font-bold text-gray-900 text-sm break-words">{session.employeeName}</div>
           <div className="text-xs text-gray-500 break-words">工号: {session.employeeId || '-'}</div>
           <div className="text-xs text-gray-500 break-words">{session.department || '未分配部门'}</div>
+          {session.rejectReason && (
+            <div className="mt-2 text-[10px] text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100 italic">
+              申请原因：{session.rejectReason}
+            </div>
+          )}
         </div>
       </div>
       {children && <div className="mt-4">{children}</div>}

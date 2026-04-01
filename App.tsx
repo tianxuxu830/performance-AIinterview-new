@@ -20,7 +20,7 @@ import MyTeamOrgPerformance from './components/MyTeamOrgPerformance';
 import MyTeamSubordinatePerformance from './components/MyTeamSubordinatePerformance';
 import InterviewConfirmationView from './components/InterviewConfirmationView';
 import MobileApp from './components/MobileApp'; // Import MobileApp
-import { InterviewSession, Status, InterviewType, Notification } from './types';
+import { InterviewSession, Status, InterviewType, Notification, ActivityLogEntry } from './types';
 import { MOCK_SESSIONS, MOCK_EMPLOYEES } from './constants';
 
 function App() {
@@ -188,10 +188,10 @@ function App() {
       }
   };
 
-  const handleSubmitFeedback = () => {
+  const handleSubmitFeedback = (updatedData?: Partial<InterviewSession>) => {
       if (selectedSession) {
           setSessions(prev => prev.map(s => 
-              s.id === selectedSession.id ? { ...s, status: Status.PendingConfirmation } : s
+              s.id === selectedSession.id ? { ...s, status: Status.PendingConfirmation, ...updatedData } : s
           ));
           alert('已提交给员工确认！');
           setSelectedSession(null);
@@ -199,12 +199,50 @@ function App() {
       }
   };
 
-  const handleConfirmCompletion = () => {
+  const handleConfirmCompletion = (feedback?: string) => {
       if (selectedSession) {
+          const newLog: ActivityLogEntry = {
+              id: Date.now().toString(),
+              type: 'status_change',
+              action: '确认完成',
+              operator: `${selectedSession.employeeName} (员工)`,
+              timestamp: new Date().toLocaleString(),
+              details: feedback ? `补充说明: ${feedback}` : '已确认面谈结果'
+          };
+
           setSessions(prev => prev.map(s => 
-              s.id === selectedSession.id ? { ...s, status: Status.Completed } : s
+              s.id === selectedSession.id ? { 
+                  ...s, 
+                  status: Status.Completed,
+                  activityLogs: [newLog, ...(s.activityLogs || [])]
+              } : s
           ));
           alert('已完成面谈结果确认！');
+          setSelectedSession(null);
+          setViewMode('list');
+      }
+  };
+
+  const handleRejectSession = (reason: string) => {
+      if (selectedSession) {
+          const newLog: ActivityLogEntry = {
+              id: Date.now().toString(),
+              type: 'status_change',
+              action: '申请重新沟通',
+              operator: `${selectedSession.employeeName} (员工)`,
+              timestamp: new Date().toLocaleString(),
+              details: `申请原因: ${reason}`
+          };
+
+          setSessions(prev => prev.map(s => 
+              s.id === selectedSession.id ? { 
+                  ...s, 
+                  status: Status.InProgress, 
+                  rejectReason: reason,
+                  activityLogs: [newLog, ...(s.activityLogs || [])]
+              } : s
+          ));
+          alert('已申请重新沟通！');
           setSelectedSession(null);
           setViewMode('list');
       }
@@ -301,9 +339,9 @@ function App() {
         if (viewMode === 'detail' && selectedSession) {
           // ROUTING LOGIC: If employee confirms a pending session, show Confirmation View
           if (userRole === 'Employee' && selectedSession.status === Status.PendingConfirmation) {
-            return <InterviewConfirmationView session={selectedSession} onBack={handleBackToInterviewList} onConfirm={handleConfirmCompletion} />;
+            return <InterviewConfirmationView session={selectedSession} onBack={handleBackToInterviewList} onConfirm={handleConfirmCompletion} onReject={handleRejectSession} />;
           }
-          return <InterviewForm session={selectedSession} onBack={handleBackToInterviewList} onStart={handleStartInterview} onSubmitFeedback={handleSubmitFeedback} onChangeSession={handleSelectSession} />;
+          return <InterviewForm session={selectedSession} onBack={handleBackToInterviewList} onStart={handleStartInterview} onSubmitFeedback={handleSubmitFeedback} onChangeSession={handleSelectSession} readOnly={userRole === 'HR'} />;
         }
 
         if (activePage === 'interviews') {
@@ -342,7 +380,7 @@ function App() {
       <NewInterviewModal isOpen={isNewInterviewModalOpen} onClose={() => setIsNewInterviewModalOpen(false)} onSubmit={handleNewInterviewSubmit} initialEmployeeIds={newInterviewInitialEmployees} defaultTopic={newInterviewDefaultTopic} />
       <ScheduleMeetingModal isOpen={isScheduleModalOpen} onClose={() => setScheduleModalOpen(false)} onConfirm={handleConfirmSchedule} session={scheduleTargetSession} />
       {/* Mobile Simulation Overlay */}
-      {isMobileMode && <MobileApp sessions={sessions} onClose={() => setIsMobileMode(false)} onCancelSession={handleCancelSession} onDeleteSession={handleDeleteSession} />}
+      {isMobileMode && <MobileApp sessions={sessions} onClose={() => setIsMobileMode(false)} onCancelSession={handleCancelSession} onDeleteSession={handleDeleteSession} onRejectSession={handleRejectSession} />}
     </div>
   );
 }

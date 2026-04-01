@@ -11,20 +11,24 @@ import {
   Target, ThumbsUp, ThumbsDown, MessageSquare, Layers,
   Loader2, Lock, ShieldCheck, Shield, Users, Plus
 } from 'lucide-react';
-import { InterviewSession, Status, TemplateField, InterviewType, HistoricalRecord } from '../types';
-import { MOCK_TEMPLATES, MOCK_ASSESSMENT_DETAILS, MOCK_EMPLOYEES, MOCK_AI_OUTLINE, ExtendedAssessmentDetail, MOCK_HISTORY_RECORDS, MOCK_PERFORMANCE_TRENDS } from '../constants';
+import { InterviewSession, Status, TemplateField, InterviewType, HistoricalRecord, ActivityLogEntry } from '../types';
+import { MOCK_TEMPLATES, MOCK_ASSESSMENT_DETAILS, MOCK_EMPLOYEES, MOCK_AI_OUTLINE, ExtendedAssessmentDetail, MOCK_HISTORY_RECORDS, MOCK_PERFORMANCE_TRENDS, MOCK_ACTIVITY_LOGS } from '../constants';
 import AssessmentDetailTable from './AssessmentDetailTable';
 import PerformanceAnalysisSummary from './PerformanceAnalysisSummary';
+import ImprovementPlanTable from './ImprovementPlanTable';
 
 interface InterviewFormProps {
   session: InterviewSession;
   onBack: () => void;
   onStart: () => void; // Used for "Enter Meeting" in Appointment mode
-  onSubmitFeedback: () => void;
+  onSubmitFeedback: (updatedData?: Partial<InterviewSession>) => void;
   onChangeSession?: (session: InterviewSession) => void;
+  readOnly?: boolean;
 }
 
 // --- Enhanced Mock Data for 5 Roles, 2 Projects, 10 Indicators ---
+import ActivityLog from './ActivityLog';
+
 const MOCK_CONFLICT_DETAILS_ENHANCED = {
     roles: [
         { key: 'self', label: '自评', name: '陈飞', avatar: 'https://picsum.photos/id/338/50/50' },
@@ -66,7 +70,33 @@ const MOCK_CONFLICT_DETAILS_ENHANCED = {
     ]
 };
 
-const InterviewForm: React.FC<InterviewFormProps> = ({ session, onBack, onStart, onSubmitFeedback, onChangeSession }) => {
+// 定义改进计划类型
+interface ImprovementPlan {
+    id: string;
+    action: string;
+    deadline: string;
+    status: 'pending' | 'completed';
+}
+
+const InterviewForm: React.FC<InterviewFormProps> = ({ 
+    session, 
+    onBack, 
+    onStart, 
+    onSubmitFeedback, 
+    onChangeSession,
+    readOnly: propReadOnly = false
+}) => {
+    const [improvementPlans, setImprovementPlans] = useState<ImprovementPlan[]>([
+        { id: '1', action: '提升跨部门沟通效率', deadline: '2026-04-30', status: 'pending' },
+        { id: '2', action: '深入学习项目管理工具', deadline: '2026-05-15', status: 'pending' }
+    ]);
+    const [originalImprovementPlans, setOriginalImprovementPlans] = useState<ImprovementPlan[]>([]);
+    const [activityLogs, setActivityLogs] = useState<ActivityLogEntry[]>(session.activityLogs || MOCK_ACTIVITY_LOGS);
+    
+    // 初始化时保存原始数据
+    useEffect(() => {
+        setOriginalImprovementPlans(JSON.parse(JSON.stringify(improvementPlans)));
+    }, []);
   // --- 1. Scenario Logic ---
   const isDirect = session.method === 'direct';
   const isAppointment = session.method === 'appointment';
@@ -138,7 +168,8 @@ const InterviewForm: React.FC<InterviewFormProps> = ({ session, onBack, onStart,
   const overviewRef = useRef<HTMLDivElement>(null);
   const historyRef = useRef<HTMLDivElement>(null);
 
-  const [formValues, setFormValues] = useState<Record<string, string>>({});
+  const [formValues, setFormValues] = useState<Record<string, string>>(session.content || {});
+  const [originalFormValues, setOriginalFormValues] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving'>('saved'); // Auto-save status
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,6 +187,12 @@ const InterviewForm: React.FC<InterviewFormProps> = ({ session, onBack, onStart,
   
   // Resolve History Records for Switcher
   const historyRecords = MOCK_HISTORY_RECORDS[session.employeeId] || [];
+
+  // 初始化时保存原始数据
+  useEffect(() => {
+    setOriginalImprovementPlans(JSON.parse(JSON.stringify(improvementPlans)));
+    setOriginalFormValues(JSON.parse(JSON.stringify(session.content || {})));
+  }, [session.id]);
 
   // --- Resizing Logic ---
   const startResizing = useCallback(() => setIsDragging(true), []);
@@ -307,8 +344,94 @@ const InterviewForm: React.FC<InterviewFormProps> = ({ session, onBack, onStart,
   };
 
   const handleConfirmShare = () => {
+      // 1. 比较改进计划差异
+      const changes: any[] = [];
+      
+      // 检测新增或修改的计划
+      improvementPlans.forEach((plan, index) => {
+          const original = originalImprovementPlans[index];
+          if (!original) {
+              // 新增计划
+              changes.push({
+                  field: `新增改进计划 #${index + 1}`,
+                  oldValue: '(无)',
+                  newValue: `${plan.action} (截止: ${plan.deadline})`,
+                  isTableDetail: true
+              });
+          } else if (original.action !== plan.action || original.deadline !== plan.deadline) {
+              // 修改计划
+              changes.push({
+                  field: `改进计划 #${index + 1} - ${plan.action}`,
+                  oldValue: `${original.action} (截止: ${original.deadline})`,
+                  newValue: `${plan.action} (截止: ${plan.deadline})`,
+                  isTableDetail: true
+              });
+          }
+      });
+
+      // 检测删除的计划
+      if (originalImprovementPlans.length > improvementPlans.length) {
+          for (let i = improvementPlans.length; i < originalImprovementPlans.length; i++) {
+              const deleted = originalImprovementPlans[i];
+              changes.push({
+                  field: `删除改进计划 #${i + 1}`,
+                  oldValue: `${deleted.action} (截止: ${deleted.deadline})`,
+                  newValue: '(已删除)',
+                  isTableDetail: true
+              });
+          }
+      }
+
+      // 2. 比较表单内容差异
+      template.sections.forEach(section => {
+          section.fields.forEach(field => {
+              const originalValue = originalFormValues[field.id] || '';
+              const currentValue = formValues[field.id] || '';
+              if (originalValue !== currentValue) {
+                  changes.push({
+                      field: field.label,
+                      oldValue: originalValue || '(空)',
+                      newValue: currentValue || '(空)',
+                      isTableDetail: false
+                  });
+              }
+          });
+      });
+
+      // 3. 生成日志
+      let finalLogs = activityLogs;
+      
+      // 添加内容变更日志
+      if (changes.length > 0) {
+          const contentUpdateLog: ActivityLogEntry = {
+              id: (Date.now() + 1).toString(),
+              type: 'content_update',
+              action: '更新面谈反馈内容',
+              operator: `${session.managerName} (面谈官)`,
+              timestamp: new Date().toLocaleString(),
+              changes: changes
+          };
+          finalLogs = [contentUpdateLog, ...finalLogs];
+      }
+
+      // 添加提交确认日志
+      const submitLog: ActivityLogEntry = {
+          id: Date.now().toString(),
+          type: 'status_change',
+          action: '提交确认',
+          operator: `${session.managerName} (面谈官)`,
+          timestamp: new Date().toLocaleString(),
+          details: '已提交面谈记录，等待员工确认'
+      };
+      finalLogs = [submitLog, ...finalLogs];
+      
+      setActivityLogs(finalLogs);
+      
       setIsShareModalOpen(false);
-      onSubmitFeedback();
+      onSubmitFeedback({
+          content: formValues,
+          activityLogs: finalLogs
+      });
   };
 
   const toggleShareItem = (key: keyof typeof shareConfig.items) => {
@@ -602,7 +725,13 @@ const InterviewForm: React.FC<InterviewFormProps> = ({ session, onBack, onStart,
         )}
         
         <div className="flex items-center space-x-3">
-             {isAppointment && isPreparing && (
+             <button 
+                onClick={() => setIsActivityLogDrawerOpen(true)}
+                className="px-4 py-2 bg-gray-50 text-gray-700 rounded-full text-sm font-medium hover:bg-gray-100 flex items-center border border-gray-200 transition-colors"
+             >
+                 <Clock size={16} className="mr-1.5" /> 活动日志
+             </button>
+             {isAppointment && isPreparing && !propReadOnly && (
                  <button 
                     onClick={onStart}
                     className="px-5 py-2 bg-[#8B5CF6] text-white rounded-full text-sm font-bold hover:bg-[#7C3AED] flex items-center shadow-lg shadow-purple-200 transition-all transform hover:scale-105"
@@ -817,6 +946,20 @@ const InterviewForm: React.FC<InterviewFormProps> = ({ session, onBack, onStart,
                             </button>
                       )}
                   </div>
+
+                  {session.rejectReason && (
+                      <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4 animate-in fade-in slide-in-from-top-2">
+                          <div className="flex items-start">
+                              <AlertTriangle size={18} className="text-orange-500 mr-3 mt-0.5 shrink-0" />
+                              <div>
+                                  <h4 className="text-sm font-bold text-orange-800 mb-1">员工申请重新沟通</h4>
+                                  <p className="text-xs text-orange-700 leading-relaxed">
+                                      <span className="font-bold">原因：</span>{session.rejectReason}
+                                  </p>
+                              </div>
+                          </div>
+                      </div>
+                  )}
                   
                   {template.sections.map((section) => (
                       <div key={section.id} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
@@ -908,7 +1051,13 @@ const InterviewForm: React.FC<InterviewFormProps> = ({ session, onBack, onStart,
                                                           </>
                                                       )}
                                                   </div>
-                                              ) : field.type === 'textarea' ? (
+                                              ) : (section.id === 's3' && field.id === 'f3') || field.id === 'improvement_plan_table' ? (
+                                                   <ImprovementPlanTable 
+                                                       plans={improvementPlans} 
+                                                       onChange={setImprovementPlans} 
+                                                       readOnly={readOnly}
+                                                   />
+                                               ) : field.type === 'textarea' ? (
                                                   <div className="relative">
                                                       <textarea 
                                                           disabled={readOnly}
@@ -1101,13 +1250,15 @@ const InterviewForm: React.FC<InterviewFormProps> = ({ session, onBack, onStart,
   };
 
   const renderRightContent = () => {
+      const readOnly = propReadOnly || !isPreparing;
       if (isDirect || isPendingConfirmation) {
-          return renderFeedbackForm(isPendingConfirmation); 
+          return renderFeedbackForm(propReadOnly || isPendingConfirmation); 
       }
       if (isAppointment && isPreparing) {
           if (activeTab === 'outline') return renderOutline();
           if (activeTab === 'info') return <div className="p-6"><div className="bg-white p-6 rounded-xl border">基本信息内容...</div></div>;
           if (activeTab === 'ref') return <div className="p-6 h-full"><AssessmentDetailTable detail={assessmentDetail} period={session.period} /></div>;
+          if (activeTab === 'plans') return <div className="p-6 h-full"><ImprovementPlanTable plans={improvementPlans} onChange={setImprovementPlans} readOnly={readOnly} /></div>;
       }
       if (isAppointment && isCompleted) {
           if (activeTab === 'summary') return renderSmartSummary();
@@ -1126,6 +1277,7 @@ const InterviewForm: React.FC<InterviewFormProps> = ({ session, onBack, onStart,
               { id: 'outline', label: '面谈大纲', icon: List },
               { id: 'info', label: '基本信息', icon: Info },
               { id: 'ref', label: '参考资料', icon: BookOpen },
+              { id: 'plans', label: '改进计划', icon: Target },
           ];
       }
       
@@ -1471,32 +1623,15 @@ const InterviewForm: React.FC<InterviewFormProps> = ({ session, onBack, onStart,
         <div className={`fixed inset-y-0 right-0 w-[450px] bg-white shadow-2xl z-[100] transform transition-transform duration-300 ease-in-out flex flex-col ${isActivityLogDrawerOpen ? 'translate-x-0' : 'translate-x-full'}`}>
             <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
                 <h3 className="text-lg font-bold text-gray-900 flex items-center">
-                    <Activity size={18} className="text-blue-600 mr-2" />
-                    活动日志
+                    <Clock size={18} className="text-blue-600 mr-2" />
+                    活动日志与调整记录
                 </h3>
                 <button onClick={() => setIsActivityLogDrawerOpen(false)} className="p-1.5 hover:bg-gray-200 rounded-full text-gray-500 transition-colors">
                     <X size={18} />
                 </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-6 bg-gray-50/30">
-                <div className="relative border-l-2 border-gray-200 ml-4 space-y-8 pb-8">
-                    {/* Mock Data for Activity Log */}
-                    {[
-                        { time: '2026-02-28 10:30', action: '提交了自评', user: '张妮' },
-                        { time: '2026-02-27 15:45', action: '更新了 OKR 进度', user: '张妮' },
-                        { time: '2026-02-25 09:12', action: '完成了平级评价', user: '王五' },
-                        { time: '2026-02-20 14:20', action: '发起了绩效考核', user: '系统' },
-                    ].map((log, idx) => (
-                        <div key={idx} className="relative pl-6">
-                            <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-white border-2 border-blue-500"></div>
-                            <div className="text-xs font-bold text-gray-500 mb-1">{log.time}</div>
-                            <div className="bg-white rounded-lg border border-gray-100 p-3 shadow-sm">
-                                <span className="font-bold text-gray-800 text-sm mr-2">{log.user}</span>
-                                <span className="text-sm text-gray-600">{log.action}</span>
-                            </div>
-                        </div>
-                    ))}
-                </div>
+            <div className="flex-1 overflow-y-auto p-0 bg-gray-50/30">
+                <ActivityLog logs={activityLogs} hideHeader={true} />
             </div>
         </div>
 

@@ -245,7 +245,14 @@ const EmployeeTaskTable: React.FC<EmployeeTaskTableProps> = ({ type, onAction, s
                                     <td className="px-4 py-4 text-center">
                                         <input type="checkbox" className="rounded text-primary focus:ring-primary cursor-pointer" />
                                     </td>
-                                    <td className="px-4 py-4 font-medium text-gray-900">{task.name}</td>
+                                    <td className="px-4 py-4 font-medium text-gray-900">
+                                        <div>{task.name}</div>
+                                        {task.rawSession?.rejectReason && (
+                                            <div className="text-[10px] text-red-500 mt-1 bg-red-50 px-1.5 py-0.5 rounded inline-block border border-red-100 italic">
+                                                申请原因：{task.rawSession.rejectReason}
+                                            </div>
+                                        )}
+                                    </td>
                                     <td className="px-4 py-4">{task.employee}</td>
                                     <td className="px-4 py-4">{task.rawSession?.linkedAssessmentId ? task.period : '-'}</td>
                                     {type === 'interviews' && (

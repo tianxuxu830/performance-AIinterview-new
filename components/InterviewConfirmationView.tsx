@@ -3,19 +3,22 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   ArrowLeft, CheckCircle2, Sparkles, FileText, 
   Info, BookOpen, Video, Send, X, ShieldCheck, 
-  AlertTriangle, PenLine, FileSignature, Edit3, ChevronRight, Eraser
+  AlertTriangle, PenLine, FileSignature, Edit3, ChevronRight, Eraser,
+  Clock
 } from 'lucide-react';
 import { InterviewSession, ShareConfig, Status } from '../types';
 import { MOCK_TEMPLATES, MOCK_ASSESSMENT_DETAILS } from '../constants';
 import AssessmentDetailTable from './AssessmentDetailTable';
+import ActivityLog from './ActivityLog';
 
 interface InterviewConfirmationViewProps {
   session: InterviewSession;
   onBack: () => void;
-  onConfirm: () => void;
+  onConfirm: (feedback?: string) => void;
+  onReject: (reason: string) => void;
 }
 
-const InterviewConfirmationView: React.FC<InterviewConfirmationViewProps> = ({ session, onBack, onConfirm }) => {
+const InterviewConfirmationView: React.FC<InterviewConfirmationViewProps> = ({ session, onBack, onConfirm, onReject }) => {
   // Use session's shareConfig or fallback to defaults
   const config = session.shareConfig || {
     items: { summary: true, form: true, info: false, ref: false, replay: false },
@@ -122,13 +125,12 @@ const InterviewConfirmationView: React.FC<InterviewConfirmationViewProps> = ({ s
       return;
     }
     setShowSignatureModal(false);
-    onConfirm();
+    onConfirm(employeeFeedback);
   };
 
   const handleReject = () => {
     if (!rejectReason) return alert('请输入申请重新沟通的理由');
-    alert('已申请重新沟通：' + rejectReason);
-    onBack();
+    onReject(rejectReason);
   };
 
   return (
@@ -160,145 +162,86 @@ const InterviewConfirmationView: React.FC<InterviewConfirmationViewProps> = ({ s
         </div>
       </div>
 
-      <div className="flex flex-1 overflow-hidden bg-gray-50/30 p-6">
-        <div className="flex-1 flex flex-col min-w-0 bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden max-w-5xl mx-auto w-full">
-            {/* Tabs Header */}
-            {tabs.length > 0 && (
-                <div className="bg-white border-b border-gray-100 px-6 pt-2 shrink-0">
-                     <div className="flex space-x-6 overflow-x-auto hide-scrollbar">
-                         {tabs.map(tab => (
-                             <button 
-                                key={tab.id}
-                                onClick={() => setActiveTab(tab.id)}
-                                className={`pb-3 text-sm font-medium border-b-2 transition-all flex items-center relative whitespace-nowrap px-1 ${
-                                    activeTab === tab.id
-                                        ? `border-blue-600 text-blue-600 font-bold` 
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200'
-                                }`}
-                            >
-                                <tab.icon size={16} className={`mr-2 ${activeTab === tab.id ? 'text-blue-600' : 'text-gray-400'}`} />
-                                {tab.label}
-                            </button>
-                         ))}
-                     </div>
+      <div className="flex flex-1 overflow-hidden bg-gray-50/30 p-6 gap-6">
+        {/* Left Column: Assessment Details */}
+        <div className="flex-1 flex flex-col bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <div className="flex items-center">
+                    <BookOpen size={18} className="text-blue-600 mr-2" />
+                    <h3 className="font-bold text-gray-900">考核详情与参考资料</h3>
                 </div>
-            )}
+                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                    周期：{session.assessmentCycle || '当前周期'}
+                </span>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-0">
+                <AssessmentDetailTable detail={assessmentDetail} period={session.period} />
+            </div>
+        </div>
 
-            {/* Content Area */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-8 bg-gray-50/30">
-              <div className="max-w-4xl mx-auto w-full">
-            {activeTab === 'summary' && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 space-y-6">
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-                  <div className="flex items-center mb-6">
-                    <div className="p-2 bg-purple-100 text-purple-600 rounded-lg mr-3">
-                      <Sparkles size={24} />
-                    </div>
-                    <h3 className="text-xl font-bold text-gray-900">AI 智能面谈纪要</h3>
-                  </div>
-                  <div className="prose prose-blue max-w-none text-gray-600 leading-relaxed space-y-4">
-                    <p>本次绩效面谈于 {session.date} 进行，整体氛围积极建设性。核心讨论点如下：</p>
-                    <div className="bg-blue-50/50 rounded-xl p-5 border border-blue-100">
-                      <h4 className="font-bold text-blue-900 mb-3 flex items-center"><CheckCircle2 size={16} className="mr-2"/> 达成共识事项</h4>
-                      <ul className="list-disc list-inside space-y-2 text-sm text-blue-800/80">
-                        <li>确认 Q4 绩效等级为 A，核心项目 A10 表现优异获得认可。</li>
-                        <li>针对“跨部门协作”中的认知偏差达成了一致改进方案。</li>
-                        <li>下个周期的重点将向“新产品孵化”倾斜，权重调整为 40%。</li>
-                      </ul>
-                    </div>
-                    <div className="bg-orange-50/50 rounded-xl p-5 border border-orange-100">
-                      <h4 className="font-bold text-orange-900 mb-3 flex items-center"><PenLine size={16} className="mr-2"/> 后续行动计划</h4>
-                      <ul className="list-disc list-inside space-y-2 text-sm text-orange-800/80">
-                        <li>员工：在下周五前输出团队沟通 SOP 初稿。</li>
-                        <li>经理：协助协调资源，提供跨部门流程优化的支持。</li>
-                      </ul>
-                    </div>
-                  </div>
+        {/* Right Column: Feedback & Summary */}
+        <div className="flex-[1.2] flex flex-col bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+                <div className="flex items-center">
+                    <FileText size={18} className="text-blue-600 mr-2" />
+                    <h3 className="font-bold text-gray-900">面谈反馈与共识</h3>
                 </div>
-              </div>
-            )}
-
-            {activeTab === 'form' && (
-              <div className="animate-in fade-in slide-in-from-bottom-2 space-y-6">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-bold text-gray-800">绩效面谈反馈记录</h3>
-                  <span className={`px-2 py-1 rounded text-[10px] font-bold border ${config.formPermission === 'edit' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
-                    {config.formPermission === 'edit' ? '允许补充/说明' : '只读视图'}
-                  </span>
-                </div>
-                <div className="space-y-8">
-                  {template.sections.map(section => (
-                    <div key={section.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                      <h3 className="text-base font-bold text-gray-900 mb-5 flex items-center">
-                        <div className="w-1.5 h-4 bg-blue-600 rounded-full mr-2"></div>
-                        {section.title}
-                      </h3>
-                      <div className="space-y-5">
-                        {section.fields.map(field => (
-                          <div key={field.id} className="group">
-                            <label className="block text-sm font-bold text-gray-700 mb-2 flex items-center justify-between">
-                              <span>{field.label}</span>
-                            </label>
-                            <div className="relative">
-                              <textarea
-                                value={session.content?.[field.id] || ''}
-                                readOnly
-                                className="w-full border rounded-xl p-4 text-sm outline-none min-h-[120px] transition-all resize-y leading-relaxed bg-white border-gray-200 text-gray-600"
-                                placeholder="[面谈官未填写]"
-                              />
+                <span className={`px-2 py-1 rounded text-[10px] font-bold border ${config.formPermission === 'edit' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                    {config.formPermission === 'edit' ? '允许补充说明' : '只读视图'}
+                </span>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-8 bg-gray-50/10">
+                {/* Feedback Form Sections */}
+                <div className="space-y-6">
+                    {template.sections.map(section => (
+                        <div key={section.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                            <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center">
+                                <div className="w-1 h-3 bg-blue-600 rounded-full mr-2"></div>
+                                {section.title}
+                            </h3>
+                            <div className="space-y-4">
+                                {section.fields.map(field => (
+                                    <div key={field.id}>
+                                        <label className="block text-xs font-bold text-gray-500 mb-1.5">{field.label}</label>
+                                        <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-700 border border-gray-100 min-h-[60px] leading-relaxed">
+                                            {session.content?.[field.id] || <span className="text-gray-300 italic">未填写</span>}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
-                          </div>
-                        ))}
-                      </div>
+                        </div>
+                    ))}
+
+                    {/* Employee Feedback Input */}
+                    {config.formPermission === 'edit' && (
+                        <div className="bg-white rounded-2xl p-6 border border-blue-100 shadow-sm bg-blue-50/5">
+                            <label className="text-sm font-bold text-gray-900 mb-4 flex items-center">
+                                <Edit3 size={16} className="mr-2 text-primary" /> 员工个人总结与确认说明
+                            </label>
+                            <textarea
+                                value={employeeFeedback}
+                                onChange={(e) => setEmployeeFeedback(e.target.value)}
+                                className="w-full border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary outline-none min-h-[120px] transition-all bg-white hover:border-gray-300"
+                                placeholder="针对以上面谈结果，如有任何补充说明请在此输入..."
+                            ></textarea>
+                        </div>
+                    )}
+                </div>
+
+                {/* Activity Log Section */}
+                <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+                    <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center">
+                        <Clock size={16} className="text-gray-400 mr-2" />
+                        调整记录与活动日志
+                    </h3>
+                    <div className="max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                        <ActivityLog logs={session.activityLogs || []} hideHeader={true} />
                     </div>
-                  ))}
-
-                  {config.formPermission === 'edit' && (
-                    <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-                      <label className="text-base font-bold text-gray-900 mb-5 flex items-center">
-                        <Edit3 size={16} className="mr-2 text-primary" /> 员工个人总结与确认说明
-                      </label>
-                      <textarea
-                        value={employeeFeedback}
-                        onChange={(e) => setEmployeeFeedback(e.target.value)}
-                        className="w-full border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-primary outline-none min-h-[120px] transition-all bg-gray-50/30 hover:bg-white"
-                        placeholder="针对以上面谈结果，如有任何补充说明请在此输入..."
-                      ></textarea>
-                    </div>
-                  )}
                 </div>
-              </div>
-            )}
-
-            {activeTab === 'details' && (
-              <div className="h-full">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
-                    <AssessmentDetailTable detail={assessmentDetail} period={session.period} />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'info' && (
-              <div className="p-0 h-full"><div className="bg-white p-8 rounded-2xl border">正在加载员工基本信息...</div></div>
-            )}
-
-            {activeTab === 'ref' && (
-              <div className="h-full">
-                <div className="bg-white rounded-xl border border-gray-200 shadow-[0_2px_8px_rgba(0,0,0,0.04)] overflow-hidden">
-                  <AssessmentDetailTable detail={assessmentDetail} period={session.assessmentCycle || '当前周期'} />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'replay' && (
-              <div className="bg-black rounded-2xl aspect-video flex items-center justify-center text-white text-sm font-medium">
-                面谈视频回放已就绪，仅限本人查看
-              </div>
-            )}
-          </div>
+            </div>
         </div>
       </div>
-    </div>
 
       {/* Signature Modal */}
       {showSignatureModal && (

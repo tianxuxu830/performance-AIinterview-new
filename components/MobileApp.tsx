@@ -19,6 +19,7 @@ interface MobileAppProps {
   onClose: () => void;
   onCancelSession?: (sessionId: string) => void;
   onDeleteSession?: (sessionId: string) => void;
+  onRejectSession?: (sessionId: string, reason: string) => void;
 }
 
 interface MobileFilterState {
@@ -37,7 +38,7 @@ const initialFilters: MobileFilterState = {
   endDate: '',
 };
 
-const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose, onCancelSession, onDeleteSession }) => {
+const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose, onCancelSession, onDeleteSession, onRejectSession }) => {
   const [localSessions, setLocalSessions] = useState<InterviewSession[]>(sessions);
   const [activeTab, setActiveTab] = useState<'workbench' | 'team' | 'me'>('workbench');
   const [workbenchView, setWorkbenchView] = useState<'dashboard' | 'interviewList' | 'schedule' | 'feedback' | 'prepare' | 'confirm'>('dashboard');
@@ -96,6 +97,10 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose, onCancelSessio
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   const [currentTime, setCurrentTime] = useState('');
+
+  useEffect(() => {
+    setLocalSessions(sessions);
+  }, [sessions]);
 
   useEffect(() => {
     setIsHeaderCollapsed(false);
@@ -584,6 +589,12 @@ const MobileApp: React.FC<MobileAppProps> = ({ sessions, onClose, onCancelSessio
                   session={selectedSession} 
                   mode={workbenchView} 
                   onBack={() => setWorkbenchView('interviewList')}
+                  onReject={(reason) => {
+                      if (onRejectSession && selectedSession) {
+                          onRejectSession(selectedSession.id, reason);
+                          setWorkbenchView('interviewList');
+                      }
+                  }}
                   onSubmit={() => {
                       setWorkbenchView('interviewList');
                   }}

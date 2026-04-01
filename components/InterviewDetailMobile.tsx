@@ -1,16 +1,18 @@
 import React, { useState, useRef } from 'react';
 import { ChevronLeft, Send, CheckCircle2, Edit3, X, Minus, Info, AlertTriangle } from 'lucide-react';
-import { InterviewSession } from '../types';
+import { InterviewSession, ActivityLogEntry } from '../types';
 import { MOCK_TEMPLATES, MOCK_ASSESSMENT_DETAILS } from '../constants';
 import FeedbackFormMobile from './FeedbackFormMobile';
 import PerformanceAnalysisSummary from './PerformanceAnalysisSummary';
 import AssessmentDetailMobile from './AssessmentDetailMobile';
 import MobileEmployeeCard from './MobileEmployeeCard';
+import ActivityLog from './ActivityLog';
 
 interface InterviewDetailMobileProps {
   session: InterviewSession;
   mode: 'feedback' | 'prepare' | 'confirm';
   onBack: () => void;
+  onReject?: (reason: string) => void;
   onSubmit?: () => void;
 }
 
@@ -18,9 +20,10 @@ const InterviewDetailMobile: React.FC<InterviewDetailMobileProps> = ({
   session,
   mode,
   onBack,
+  onReject,
   onSubmit
 }) => {
-  const [activeTab, setActiveTab] = useState<'form' | 'analysis' | 'detail'>('form');
+  const [activeTab, setActiveTab] = useState<'form' | 'analysis' | 'detail' | 'logs'>('form');
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
   
   // Feedback Form State
@@ -156,12 +159,32 @@ const InterviewDetailMobile: React.FC<InterviewDetailMobileProps> = ({
         >
           考核表明细
         </button>
+        <button 
+          onClick={() => setActiveTab('logs')}
+          className={`pb-3 pt-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${activeTab === 'logs' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500'}`}
+        >
+          活动日志
+        </button>
       </div>
 
       <div 
         className="flex-1 overflow-y-auto p-4 custom-scrollbar pb-24"
         onScroll={(e) => setIsHeaderCollapsed(e.currentTarget.scrollTop > 20)}
       >
+        {session.rejectReason && (
+          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 mb-4 animate-in fade-in slide-in-from-top-2">
+            <div className="flex items-start">
+              <AlertTriangle size={20} className="text-orange-500 mr-3 mt-0.5 shrink-0" />
+              <div>
+                <h4 className="text-sm font-bold text-orange-800 mb-1">申请重新沟通</h4>
+                <p className="text-xs text-orange-700 leading-relaxed">
+                  <span className="font-bold">原因：</span>{session.rejectReason}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeTab === 'form' && (
           <FeedbackFormMobile 
             template={template}
@@ -183,6 +206,12 @@ const InterviewDetailMobile: React.FC<InterviewDetailMobileProps> = ({
         {activeTab === 'detail' && (
           <div className="animate-in fade-in slide-in-from-bottom-2">
             <AssessmentDetailMobile />
+          </div>
+        )}
+
+        {activeTab === 'logs' && (
+          <div className="animate-in fade-in slide-in-from-bottom-2 p-4 bg-white min-h-full">
+            <ActivityLog logs={session.activityLogs || []} hideHeader={true} />
           </div>
         )}
       </div>
@@ -394,7 +423,7 @@ const InterviewDetailMobile: React.FC<InterviewDetailMobileProps> = ({
                   if (!rejectReason) return alert('请输入原因');
                   alert('已提交重新沟通申请');
                   setIsRejecting(false);
-                  if (onSubmit) onSubmit();
+                  if (onReject) onReject(rejectReason);
                 }} 
                 className="flex-1 py-3.5 bg-blue-600 text-white rounded-2xl text-base font-bold shadow-lg shadow-blue-200 active:scale-95 transition-transform"
               >

@@ -72,6 +72,21 @@ export interface InterviewTemplate {
   admins?: string[];
 }
 
+export interface ActivityLogEntry {
+    id: string;
+    type: 'status_change' | 'content_update' | 'system';
+    action: string;
+    operator: string;
+    timestamp: string;
+    details?: string;
+    changes?: {
+        field: string;
+        oldValue: string;
+        newValue: string;
+        isTableDetail?: boolean;
+    }[];
+}
+
 export interface InterviewSession {
   id: string;
   employeeId: string;
@@ -95,6 +110,8 @@ export interface InterviewSession {
   signatureType?: 'confirmation' | 'handwritten' | 'electronic'; 
   shareConfig?: ShareConfig; // New: visibility and permission settings
   cancelReason?: string;
+  rejectReason?: string;
+  activityLogs?: ActivityLogEntry[];
 }
 
 export interface AssessmentItem {
