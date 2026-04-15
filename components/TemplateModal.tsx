@@ -82,6 +82,50 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
       type: 'enable' | 'disable' | 'delete' | null;
   }>({ isOpen: false, type: null });
 
+  // Helper to render selected items summary
+  const renderSelectedItemsSummary = (className = "text-xs text-gray-500 mb-4 px-1 text-left") => {
+    const selectedList = templates.filter(t => selectedTemplates.has(t.id));
+    const names = selectedList.map(t => t.name);
+    const n = names.length;
+    
+    if (n === 0) return null;
+
+    const renderTag = (name: string, i: number) => (
+      <span key={i} className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-medium text-gray-700">
+        {name}
+      </span>
+    );
+
+    if (n <= 10) {
+      return (
+        <div className={`${className} flex flex-wrap gap-1.5 items-center`}>
+          <span className="font-medium text-gray-700 mr-0.5">已选模板：</span>
+          {names.map((name, i) => renderTag(name, i))}
+        </div>
+      );
+    }
+
+    const displayedNames = names.slice(0, 10);
+    const fullList = names.join('、');
+
+    return (
+      <div className={`${className} flex flex-wrap gap-1.5 items-center`}>
+        <span className="font-medium text-gray-700 mr-0.5">已选模板：</span>
+        {displayedNames.map((name, i) => renderTag(name, i))}
+        <div className="relative group">
+          <span className="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded text-[10px] font-bold text-blue-600 cursor-help">
+            ...等{n}个模板
+          </span>
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl invisible group-hover:visible z-[100] break-all leading-relaxed text-center">
+            <div className="font-bold mb-1 border-b border-white/10 pb-1">完整名单</div>
+            {fullList}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   // Drag and Drop State
   const [draggedItem, setDraggedItem] = useState<{sectionId: string, index: number} | null>(null);
 
@@ -1360,9 +1404,18 @@ const TemplateConfigPage: React.FC<TemplateConfigPageProps> = ({ onBack }) => {
                           {type === 'delete' ? <Trash2 className={config.color} size={32} /> : <CheckSquare className={config.color} size={32} />}
                       </div>
                       <h3 className="text-lg font-bold text-gray-900 mb-2">{config.title}</h3>
-                      <p className="text-sm text-gray-500">
-                          确定要{config.text}选中的 <span className="font-bold text-gray-900">{selectedTemplates.size}</span> 个模板吗？
-                          {type === 'delete' && <span className="block text-red-500 mt-1">此操作不可撤销。</span>}
+                      
+                      {renderSelectedItemsSummary()}
+
+                      <p className="text-sm text-gray-500 px-4 leading-relaxed">
+                          {type === 'enable' && `您确定要启用选中的 ${selectedTemplates.size} 个模板吗？`}
+                          {type === 'disable' && `您确定要禁用选中的 ${selectedTemplates.size} 个模板吗？`}
+                          {type === 'delete' && (
+                              <>
+                                  确认要永久删除选中的 <span className="font-bold text-gray-900">{selectedTemplates.size}</span> 个模板吗？
+                                  <span className="block text-red-500 mt-2 font-medium">此操作不可撤销，删除后将无法找回。</span>
+                              </>
+                          )}
                       </p>
                   </div>
                   <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3">

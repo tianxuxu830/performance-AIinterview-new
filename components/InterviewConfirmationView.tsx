@@ -328,7 +328,7 @@ const InterviewConfirmationView: React.FC<InterviewConfirmationViewProps> = ({ s
                 className="w-full border border-gray-200 rounded-xl p-4 text-sm focus:ring-2 focus:ring-red-500 outline-none min-h-[100px]"
                 placeholder="请输入申请重新沟通的理由..."
               ></textarea>
-              <p className="text-xs text-gray-500 mt-4 leading-relaxed">申请后，任务状态将变更为“进行中”，面谈官将收到通知进行重新沟通。</p>
+              <p className="text-xs text-gray-500 mt-4 leading-relaxed">申请后，任务将重新回到面谈官的“待反馈”列表，面谈官将收到通知并需要重新反馈。</p>
             </div>
             <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3 border-t">
               <button onClick={() => setIsRejecting(false)} className="px-4 py-2 text-gray-600 font-medium">取消</button>

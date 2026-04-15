@@ -74,6 +74,13 @@ export const MOCK_EMPLOYEES: Employee[] = [
     status: '在职',
     account: '17316587851'
   } as any,
+  { id: '9', name: '王强', department: '技术部', role: '架构师', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Qiang', status: '在职', account: '13800138001' } as any,
+  { id: '10', name: '李梅', department: '市场部', role: '策划经理', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Mei', status: '在职', account: '13800138002' } as any,
+  { id: '11', name: '赵刚', department: '销售部', role: '大区经理', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Gang', status: '在职', account: '13800138003' } as any,
+  { id: '12', name: '孙悦', department: '产品部', role: '产品专员', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Yue', status: '在职', account: '13800138004' } as any,
+  { id: '13', name: '周杰', department: '技术部', role: '后端开发', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jay', status: '在职', account: '13800138005' } as any,
+  { id: '14', name: '吴芳', department: '人力资源部', role: '招聘主管', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fang', status: '在职', account: '13800138006' } as any,
+  { id: '15', name: '郑明', department: '财务部', role: '审计师', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ming', status: '在职', account: '13800138007' } as any,
 ];
 
 export const MOCK_TEMPLATES: InterviewTemplate[] = [
@@ -321,7 +328,18 @@ export const MOCK_PERFORMANCE_RECORDS: PerformanceRecord[] = [
     status: Status.Completed,
     kpiScore: 60,
     okrScore: 55
-  }
+  },
+  { id: 'perf_005', employeeId: '9', period: '2025 Q4', overallScore: 91.0, grade: 'A', status: Status.Completed, kpiScore: 93, okrScore: 89 },
+  { id: 'perf_006', employeeId: '10', period: '2025 Q4', overallScore: 82.5, grade: 'B', status: Status.Completed, kpiScore: 85, okrScore: 80 },
+  { id: 'perf_007', employeeId: '11', period: '2025 Q4', overallScore: 85.0, grade: 'B', status: Status.Completed, kpiScore: 88, okrScore: 82 },
+  { id: 'perf_008', employeeId: '12', period: '2025 Q4', overallScore: 75.0, grade: 'B', status: Status.Completed, kpiScore: 78, okrScore: 72 },
+  { id: 'perf_009', employeeId: '13', period: '2025 Q4', overallScore: 89.0, grade: 'A', status: Status.Completed, kpiScore: 90, okrScore: 88 },
+  { id: 'perf_010', employeeId: '14', period: '2025 Q4', overallScore: 80.0, grade: 'B', status: Status.Completed, kpiScore: 82, okrScore: 78 },
+  { id: 'perf_011', employeeId: '15', period: '2025 Q4', overallScore: 82.0, grade: 'B', status: Status.Completed, kpiScore: 84, okrScore: 80 },
+  { id: 'perf_012', employeeId: '5', period: '2025 Q4', overallScore: 92.0, grade: 'A', status: Status.Completed, kpiScore: 94, okrScore: 90 },
+  { id: 'perf_013', employeeId: '6', period: '2025 Q4', overallScore: 86.0, grade: 'A', status: Status.Completed, kpiScore: 88, okrScore: 84 },
+  { id: 'perf_014', employeeId: '7', period: '2025 Q4', overallScore: 88.0, grade: 'A', status: Status.Completed, kpiScore: 90, okrScore: 86 },
+  { id: 'perf_015', employeeId: '8', period: '2025 Q4', overallScore: 98.0, grade: 'S', status: Status.Completed, kpiScore: 99, okrScore: 97 },
 ];
 
 export const MOCK_ACTIVITY_LOGS: ActivityLogEntry[] = [
@@ -534,7 +552,15 @@ export const MOCK_SESSIONS: InterviewSession[] = [
     gradeTag: 'A',
     department: '技术部',
     riskTag: 'normal'
-  }
+  },
+  { id: 'int_008', employeeId: '9', employeeName: '王强', managerName: '刘工', date: '2026-01-21 10:00', period: '2025 Q4 绩效考核', status: Status.NotStarted, type: InterviewType.Regular, method: 'appointment', templateId: 't1', schedulingStatus: 'scheduled', department: '技术部', riskTag: 'normal' },
+  { id: 'int_009', employeeId: '10', employeeName: '李梅', managerName: '张伟', date: '2026-01-22 14:00', period: '2025 Q4 绩效考核', status: Status.InProgress, type: InterviewType.Regular, method: 'appointment', templateId: 't1', schedulingStatus: 'scheduled', department: '市场部', riskTag: 'normal' },
+  { id: 'int_010', employeeId: '11', employeeName: '赵刚', managerName: '王总', date: '2026-01-23 09:30', period: '2025 Q4 绩效考核', status: Status.PendingConfirmation, type: InterviewType.Regular, method: 'direct', templateId: 't1', schedulingStatus: 'scheduled', department: '销售部', riskTag: 'normal' },
+  { id: 'int_011', employeeId: '12', employeeName: '孙悦', managerName: '罗孟雅', date: '2026-01-24 11:00', period: '试用期转正', status: Status.NotStarted, type: InterviewType.Probation, method: 'appointment', templateId: 't2', schedulingStatus: 'scheduled', department: '产品部', riskTag: 'normal' },
+  { id: 'int_012', employeeId: '13', employeeName: '周杰', managerName: '刘工', date: '2026-01-25 16:00', period: '2025 Q4 绩效考核', status: Status.Completed, type: InterviewType.Regular, method: 'appointment', templateId: 't1', schedulingStatus: 'scheduled', department: '技术部', riskTag: 'normal' },
+  { id: 'int_013', employeeId: '14', employeeName: '吴芳', managerName: 'Baijun', date: '2026-01-26 10:30', period: '2025 Q4 绩效考核', status: Status.NotStarted, type: InterviewType.Regular, method: 'appointment', templateId: 't1', schedulingStatus: 'scheduled', department: '人力资源部', riskTag: 'normal' },
+  { id: 'int_014', employeeId: '15', employeeName: '郑明', managerName: 'Grace', date: '2026-01-27 14:30', period: '2025 Q4 绩效考核', status: Status.InProgress, type: InterviewType.Regular, method: 'appointment', templateId: 't1', schedulingStatus: 'scheduled', department: '财务部', riskTag: 'normal' },
+  { id: 'int_015', employeeId: '4', employeeName: '陈飞', managerName: '刘工', date: '2026-01-28 09:00', period: '日常辅导', status: Status.NotStarted, type: InterviewType.Regular, method: 'appointment', templateId: 't1', schedulingStatus: 'scheduled', department: '云演示组', riskTag: 'normal' },
 ];
 
 export const MOCK_ASSESSMENTS: AssessmentItem[] = [
@@ -568,6 +594,19 @@ export const MOCK_ASSESSMENTS: AssessmentItem[] = [
     score: 88.50,
     grade: 'A'
   },
+  { id: 'a2', employeeId: '9', employeeName: '王强', role: '架构师', employeeStatus: '在职', currentStage: '结果校准', processStatus: '进行中', handler: '刘老师', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 91.00, grade: 'A' },
+  { id: 'a3', employeeId: '10', employeeName: '李梅', role: '策划经理', employeeStatus: '在职', currentStage: '自评', processStatus: '进行中', handler: '李梅', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 0.00, grade: 'D' },
+  { id: 'a4', employeeId: '11', employeeName: '赵刚', role: '大区经理', employeeStatus: '在职', currentStage: '上级评价', processStatus: '进行中', handler: '王总', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 85.00, grade: 'B' },
+  { id: 'a6', employeeId: '12', employeeName: '孙悦', role: '产品专员', employeeStatus: '在职', currentStage: '自评', processStatus: '进行中', handler: '孙悦', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 0.00, grade: 'D' },
+  { id: 'a7', employeeId: '13', employeeName: '周杰', role: '后端开发', employeeStatus: '在职', currentStage: '结果校准', processStatus: '进行中', handler: '刘老师', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 89.00, grade: 'A' },
+  { id: 'a8', employeeId: '14', employeeName: '吴芳', role: '招聘主管', employeeStatus: '在职', currentStage: '自评', processStatus: '进行中', handler: '吴芳', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 0.00, grade: 'D' },
+  { id: 'a9', employeeId: '15', employeeName: '郑明', role: '审计师', employeeStatus: '在职', currentStage: '上级评价', processStatus: '进行中', handler: 'Grace', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 82.00, grade: 'B' },
+  { id: 'a10', employeeId: '2', employeeName: '罗孟雅', role: '销售总监', employeeStatus: '在职', currentStage: '结果校准', processStatus: '进行中', handler: '王总', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 95.00, grade: 'S' },
+  { id: 'a11', employeeId: '3', employeeName: '张妮', role: 'HRBP', employeeStatus: '在职', currentStage: '自评', processStatus: '进行中', handler: '张妮', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 0.00, grade: 'D' },
+  { id: 'a12', employeeId: '5', employeeName: '黎小炫', role: '高级管理员', employeeStatus: '在职', currentStage: '结果校准', processStatus: '进行中', handler: '刘老师', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 92.00, grade: 'A' },
+  { id: 'a13', employeeId: '6', employeeName: 'Fay', role: 'BD演示权限', employeeStatus: '在职', currentStage: '自评', processStatus: '进行中', handler: 'Fay', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 0.00, grade: 'D' },
+  { id: 'a14', employeeId: '7', employeeName: 'Grace', role: '财务主管', employeeStatus: '在职', currentStage: '上级评价', processStatus: '进行中', handler: '王总', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 88.00, grade: 'A' },
+  { id: 'a15', employeeId: '8', employeeName: 'BD演示账号', role: '超级管理员', employeeStatus: '在职', currentStage: '结果校准', processStatus: '进行中', handler: '刘老师', group: 'tests', templateName: '员工PBC', indicatorTemplate: '默认指标模板', score: 98.00, grade: 'S' },
 ];
 
 // Expanded for new insight features

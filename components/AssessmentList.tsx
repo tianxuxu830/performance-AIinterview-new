@@ -43,6 +43,8 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
   const [isBatchInterviewerModalOpen, setIsBatchInterviewerModalOpen] = useState(false);
   const [isBatchRemindModalOpen, setIsBatchRemindModalOpen] = useState(false);
   const [isBatchCancelModalOpen, setIsBatchCancelModalOpen] = useState(false);
+  const [isBatchDeleteModalOpen, setIsBatchDeleteModalOpen] = useState(false);
+  const [deleteCountdown, setDeleteCountdown] = useState(0);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<InterviewSession | null>(null);
 
@@ -64,7 +66,8 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
   // Form States for Modals
   const [batchDate, setBatchDate] = useState('');
   const [batchDeadline, setBatchDeadline] = useState('');
-  const [batchInterviewers, setBatchInterviewers] = useState<string[]>(['直属上级']);
+  const [batchInterviewer, setBatchInterviewer] = useState('');
+  const [interviewerSearch, setInterviewerSearch] = useState('');
   const [isBatchInterviewerDropdownOpen, setIsBatchInterviewerDropdownOpen] = useState(false);
   const [batchRemindChannels, setBatchRemindChannels] = useState<string[]>(['message']);
   const [batchRemindUnreadOnly, setBatchRemindUnreadOnly] = useState(true);
@@ -77,6 +80,71 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
       date: '',
       deadline: ''
   });
+
+  const handleBatchDelete = () => {
+    if (interviewSelectedIds.size === 0) return;
+    setIsBatchDeleteModalOpen(true);
+    setDeleteCountdown(3);
+    const timer = setInterval(() => {
+      setDeleteCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const confirmBatchDelete = () => {
+    alert(`已成功删除 ${interviewSelectedIds.size} 条记录。`);
+    setInterviewSelectedIds(new Set());
+    setIsBatchDeleteModalOpen(false);
+  };
+
+  // Helper to render selected items summary
+  const renderSelectedItemsSummary = (prefix: string, className = "text-xs text-gray-500 mb-4 px-1") => {
+    const selectedSessions = sessions.filter(s => interviewSelectedIds.has(s.id));
+    const names = selectedSessions.map(s => s.employeeName);
+    const n = names.length;
+    
+    if (n === 0) return null;
+
+    const renderTag = (name: string, i: number) => (
+      <span key={i} className="px-1.5 py-0.5 bg-white/50 border border-current/20 rounded text-[10px] font-medium">
+        {name}
+      </span>
+    );
+
+    if (n <= 10) {
+      return (
+        <div className={`${className} flex flex-wrap gap-1.5 items-center`}>
+          <span className="font-medium opacity-90 mr-0.5">{prefix}</span>
+          {names.map((name, i) => renderTag(name, i))}
+        </div>
+      );
+    }
+
+    const displayedNames = names.slice(0, 10);
+    const fullList = names.join('、');
+
+    return (
+      <div className={`${className} flex flex-wrap gap-1.5 items-center`}>
+        <span className="font-medium opacity-90 mr-0.5">{prefix}</span>
+        {displayedNames.map((name, i) => renderTag(name, i))}
+        <div className="relative group">
+          <span className="px-1.5 py-0.5 bg-white/80 border border-current/30 rounded text-[10px] font-bold cursor-help">
+            ...等{n}人
+          </span>
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl invisible group-hover:visible z-[100] break-all leading-relaxed text-center">
+            <div className="font-bold mb-1 border-b border-white/10 pb-1">完整名单</div>
+            {fullList}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Filter sessions specifically for this Assessment Cycle ("业绩考核5月")
   // In a real app, this would use taskName or an ID. For mock purposes, we loosely filter.
@@ -162,7 +230,7 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
   };
 
   const confirmBatchRemind = () => {
-      alert(`催办发送成功，共发送 ${interviewSelectedIds.size} 条提醒。`);
+      alert(`批量催办指令已发出，系统正在为 ${interviewSelectedIds.size} 位面谈对象推送提醒通知。`);
       setIsBatchRemindModalOpen(false);
       setInterviewSelectedIds(new Set());
   };
@@ -177,7 +245,7 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
           alert('请填写取消原因');
           return;
       }
-      alert(`批量取消成功，共取消 ${interviewSelectedIds.size} 条任务。`);
+      alert(`批量取消操作已完成，共计 ${interviewSelectedIds.size} 项面谈任务已终止，相关人员将收到通知。`);
       setIsBatchCancelModalOpen(false);
       setInterviewSelectedIds(new Set());
       setBatchCancelReason('');
@@ -189,12 +257,18 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
       updates.deadline = batchDeadline;
       updates.schedulingStatus = 'pending';
       onBatchUpdateSessions(Array.from(interviewSelectedIds), updates);
+      alert(`截止日期批量调整成功，所选的 ${interviewSelectedIds.size} 项任务已同步更新。`);
       setIsBatchTimeModalOpen(false);
       setInterviewSelectedIds(new Set());
   };
 
   const submitBatchInterviewer = () => {
-      onBatchUpdateSessions(Array.from(interviewSelectedIds), { managerName: batchInterviewers.join('、') });
+      if (!batchInterviewer) {
+          alert('请选择新面谈官');
+          return;
+      }
+      onBatchUpdateSessions(Array.from(interviewSelectedIds), { managerName: batchInterviewer });
+      alert(`面谈官批量更换成功，共 ${interviewSelectedIds.size} 项任务已重新分配给：${batchInterviewer}。`);
       setIsBatchInterviewerModalOpen(false);
       setInterviewSelectedIds(new Set());
   };
@@ -749,18 +823,21 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
                             批量操作 ({interviewSelectedIds.size}) <ChevronDown size={14} className="ml-1.5" />
                         </button>
                         {interviewSelectedIds.size > 0 && (
-                            <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1 text-sm text-gray-700 hidden group-hover:block animate-in fade-in zoom-in-95">
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-xl border border-gray-100 z-50 py-1 text-sm text-gray-700 hidden group-hover:block animate-in fade-in zoom-in-95">
                                 <button onClick={handleBatchRemind} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center text-orange-600 hover:bg-orange-50">
-                                    <Bell size={14} className="mr-2" /> 批量催办
+                                    <Bell size={14} className="mr-2" /> 批量催办提醒
                                 </button>
                                 <button onClick={() => setIsBatchTimeModalOpen(true)} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center">
-                                    <CalendarIcon size={14} className="mr-2" /> 批量修改时间
+                                    <CalendarIcon size={14} className="mr-2" /> 批量调整截止日期
                                 </button>
                                 <button onClick={() => setIsBatchInterviewerModalOpen(true)} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center">
-                                    <User size={14} className="mr-2" /> 批量更换面谈官
+                                    <User size={14} className="mr-2" /> 批量重新分配面谈官
                                 </button>
                                 <button onClick={handleBatchCancel} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center text-red-600 hover:bg-red-50">
-                                    <X size={14} className="mr-2" /> 批量取消
+                                    <X size={14} className="mr-2" /> 批量取消面谈任务
+                                </button>
+                                <button onClick={handleBatchDelete} className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center text-red-600 hover:bg-red-50">
+                                    <Trash2 size={14} className="mr-2" /> 批量删除记录
                                 </button>
                             </div>
                         )}
@@ -800,59 +877,18 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
                       <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
                           <Bell size={20} />
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900">批量催办提醒</h3>
+                      <h3 className="text-lg font-bold text-gray-900">批量催办</h3>
                   </div>
                   
-                  <div className="bg-orange-50 border border-orange-100 rounded-lg p-4 mb-6">
-                      <div className="flex items-center text-sm text-orange-800">
-                          <AlertCircle size={16} className="mr-2" />
-                          <span>即将向 <span className="font-bold">{interviewSelectedIds.size}</span> 位面谈对象发送催办提醒</span>
+                  <div className="bg-orange-50 border border-orange-100 rounded-lg p-4 mb-4">
+                      <div className="flex items-start text-sm text-orange-800 mb-2">
+                          <AlertCircle size={16} className="mr-2 mt-0.5 shrink-0" />
+                          <span>您即将对 <span className="font-bold text-orange-900">{interviewSelectedIds.size}</span> 位面谈对象发起催办，系统将发送提醒通知。</span>
                       </div>
+                      {renderSelectedItemsSummary("涉及人员：", "text-xs text-orange-700/80 ml-6")}
                   </div>
 
                   <div className="space-y-4 mb-6">
-                      <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">通知渠道</label>
-                          <div className="flex space-x-4">
-                              <label className="flex items-center space-x-2 cursor-pointer">
-                                  <input 
-                                      type="checkbox" 
-                                      checked={batchRemindChannels.includes('message')}
-                                      onChange={(e) => {
-                                          if (e.target.checked) setBatchRemindChannels([...batchRemindChannels, 'message']);
-                                          else setBatchRemindChannels(batchRemindChannels.filter(c => c !== 'message'));
-                                      }}
-                                      className="rounded text-orange-600 focus:ring-orange-500"
-                                  />
-                                  <span className="text-sm text-gray-700 flex items-center"><MessageSquare size={14} className="mr-1"/> 站内信</span>
-                              </label>
-                              <label className="flex items-center space-x-2 cursor-pointer">
-                                  <input 
-                                      type="checkbox" 
-                                      checked={batchRemindChannels.includes('email')}
-                                      onChange={(e) => {
-                                          if (e.target.checked) setBatchRemindChannels([...batchRemindChannels, 'email']);
-                                          else setBatchRemindChannels(batchRemindChannels.filter(c => c !== 'email'));
-                                      }}
-                                      className="rounded text-orange-600 focus:ring-orange-500"
-                                  />
-                                  <span className="text-sm text-gray-700 flex items-center"><Mail size={14} className="mr-1"/> 邮件</span>
-                              </label>
-                          </div>
-                      </div>
-
-                      <div>
-                          <label className="flex items-center space-x-2 cursor-pointer">
-                              <input 
-                                  type="checkbox" 
-                                  checked={batchRemindUnreadOnly}
-                                  onChange={(e) => setBatchRemindUnreadOnly(e.target.checked)}
-                                  className="rounded text-orange-600 focus:ring-orange-500"
-                              />
-                              <span className="text-sm text-gray-700">仅提醒未读消息的用户</span>
-                          </label>
-                      </div>
-
                       <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">备注 (选填)</label>
                           <textarea 
@@ -865,7 +901,7 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
 
                   <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                       <button onClick={() => setIsBatchRemindModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium">取消</button>
-                      <button onClick={confirmBatchRemind} className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 shadow-sm">确认发送</button>
+                      <button onClick={confirmBatchRemind} className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 shadow-sm transition-all active:scale-95">立即催办</button>
                   </div>
               </div>
           </div>
@@ -874,22 +910,30 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
       {/* --- Batch Time Modal --- */}
       {isBatchTimeModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
-              <div className="bg-white rounded-lg shadow-xl p-6 w-[400px] animate-in zoom-in-95">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">批量修改截止时间</h3>
-                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
-                      <div className="flex items-center text-sm text-blue-800">
-                          <AlertCircle size={16} className="mr-2" />
-                          <span>即将修改 <span className="font-bold">{interviewSelectedIds.size}</span> 条任务的截止时间</span>
+              <div className="bg-white rounded-lg shadow-xl p-6 w-[450px] animate-in zoom-in-95">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">修改截止日期</h3>
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
+                      <div className="flex items-start text-sm text-blue-800 mb-2">
+                          <AlertCircle size={16} className="mr-2 mt-0.5 shrink-0" />
+                          <span>您正在批量调整 <span className="font-bold text-blue-900">{interviewSelectedIds.size}</span> 项任务的截止日期。</span>
+                      </div>
+                      {renderSelectedItemsSummary("涉及人员：", "text-xs text-blue-700/80 ml-6 mb-3")}
+                      
+                      <div className="flex items-start text-xs text-blue-600 mt-2 pt-2 border-t border-blue-100/50">
+                          <span className="mr-1">💡</span>
+                          <span>提示：已完成的任务将自动跳过，仅对进行中的任务生效。</span>
                       </div>
                   </div>
                   <div className="space-y-4 mb-6">
                       <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">新的截止时间</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">新截止日期</label>
+                          <div className="text-xs text-gray-400 mb-2">请选择新的截止时间（需晚于今日）</div>
                           <input 
                             type="date" 
                             className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                             value={batchDeadline}
                             onChange={(e) => setBatchDeadline(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
                           />
                       </div>
                   </div>
@@ -904,51 +948,101 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
       {/* --- Batch Interviewer Modal --- */}
       {isBatchInterviewerModalOpen && (
           <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
-              <div className="bg-white rounded-lg shadow-xl p-6 w-[400px] animate-in zoom-in-95">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">批量更换面谈官</h3>
-                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
-                      <div className="flex items-center text-sm text-blue-800">
-                          <AlertCircle size={16} className="mr-2" />
-                          <span>即将更换 <span className="font-bold">{interviewSelectedIds.size}</span> 条任务的面谈官</span>
+              <div className="bg-white rounded-lg shadow-xl p-6 w-[450px] animate-in zoom-in-95">
+                  <h3 className="text-lg font-bold text-gray-900 mb-4">变更面谈官</h3>
+                  <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
+                      <div className="flex items-start text-sm text-blue-800 mb-2 font-medium">
+                          <span>正在为 {interviewSelectedIds.size} 位员工调整面谈官：</span>
+                      </div>
+                      {renderSelectedItemsSummary("涉及人员：", "text-xs text-blue-700/80 ml-0 mb-3")}
+                      
+                      <div className="flex items-start text-xs text-blue-600 mt-2 pt-2 border-t border-blue-100/50">
+                          <span className="mr-1">💡</span>
+                          <span>注意：仅待安排、待反馈的任务支持改派，已完成或取消的任务将自动跳过。</span>
                       </div>
                   </div>
-                  <div className="mb-6 relative">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">选择新的面谈官 (可多选)</label>
-                      <div 
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm flex justify-between items-center cursor-pointer bg-white hover:border-blue-500 transition-colors"
-                        onClick={() => setIsBatchInterviewerDropdownOpen(!isBatchInterviewerDropdownOpen)}
-                      >
-                        <span className={batchInterviewers.length ? 'text-gray-900' : 'text-gray-400'}>
-                          {batchInterviewers.length > 0 ? batchInterviewers.join('、') : '请选择面谈官'}
-                        </span>
-                        <ChevronDown size={16} className={`text-gray-400 transition-transform ${isBatchInterviewerDropdownOpen ? 'rotate-180' : ''}`} />
+                  <div className="space-y-4 mb-6 relative">
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1"><span className="text-red-500 mr-1">*</span>新面谈官</label>
+                          <div className="text-xs text-gray-400 mb-2">请选择接替的面谈负责人</div>
+                          <div className="relative">
+                              <div 
+                                className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm flex justify-between items-center cursor-pointer bg-white hover:border-blue-500 transition-colors"
+                                onClick={() => setIsBatchInterviewerDropdownOpen(!isBatchInterviewerDropdownOpen)}
+                              >
+                                <span className={batchInterviewer ? 'text-gray-900' : 'text-gray-400'}>
+                                  {batchInterviewer || '请选择面谈官'}
+                                </span>
+                                <ChevronDown size={16} className={`text-gray-400 transition-transform ${isBatchInterviewerDropdownOpen ? 'rotate-180' : ''}`} />
+                              </div>
+                              
+                              {isBatchInterviewerDropdownOpen && (
+                                <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-60 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-100">
+                                  <div className="p-2 border-b border-gray-100 bg-gray-50/50">
+                                    <div className="relative">
+                                      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                                      <input 
+                                        type="text"
+                                        className="w-full pl-8 pr-3 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                                        placeholder="搜索姓名、部门或职位..."
+                                        value={interviewerSearch}
+                                        onChange={(e) => setInterviewerSearch(e.target.value)}
+                                        onClick={(e) => e.stopPropagation()}
+                                      />
+                                    </div>
+                                  </div>
+                                  <div className="overflow-y-auto flex-1 custom-scrollbar max-h-48">
+                                    {MOCK_EMPLOYEES.filter(e => 
+                                      e.name.toLowerCase().includes(interviewerSearch.toLowerCase()) ||
+                                      e.department.toLowerCase().includes(interviewerSearch.toLowerCase()) ||
+                                      e.role.toLowerCase().includes(interviewerSearch.toLowerCase())
+                                    ).length > 0 ? (
+                                      MOCK_EMPLOYEES.filter(e => 
+                                        e.name.toLowerCase().includes(interviewerSearch.toLowerCase()) ||
+                                        e.department.toLowerCase().includes(interviewerSearch.toLowerCase()) ||
+                                        e.role.toLowerCase().includes(interviewerSearch.toLowerCase())
+                                      ).map(employee => (
+                                        <div 
+                                          key={employee.id}
+                                          className={`flex items-center px-3 py-2 hover:bg-blue-50 cursor-pointer transition-colors ${batchInterviewer === employee.name ? 'bg-blue-50' : ''}`}
+                                          onClick={() => {
+                                            setBatchInterviewer(employee.name);
+                                            setIsBatchInterviewerDropdownOpen(false);
+                                            setInterviewerSearch('');
+                                          }}
+                                        >
+                                          <img src={employee.avatar} alt="" className="w-6 h-6 rounded-full mr-2 bg-gray-100" />
+                                          <div className="flex flex-col">
+                                            <span className="text-sm font-medium text-gray-900">{employee.name}</span>
+                                            <span className="text-[10px] text-gray-500">{employee.department} · {employee.role}</span>
+                                          </div>
+                                          {batchInterviewer === employee.name && (
+                                            <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                                          )}
+                                        </div>
+                                      ))
+                                    ) : (
+                                      <div className="py-8 text-center text-gray-400 text-xs">未找到匹配人员</div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                          </div>
                       </div>
-                      
-                      {isBatchInterviewerDropdownOpen && (
-                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto p-1 animate-in fade-in zoom-in-95 duration-100">
-                          {['直属上级', 'HRBP', '部门负责人', '隔级上级', '指定人员'].map(role => (
-                              <label key={role} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors">
-                                  <input 
-                                      type="checkbox"
-                                      checked={batchInterviewers.includes(role)}
-                                      onChange={(e) => {
-                                          if (e.target.checked) {
-                                              setBatchInterviewers([...batchInterviewers, role]);
-                                          } else {
-                                              setBatchInterviewers(batchInterviewers.filter(r => r !== role));
-                                          }
-                                      }}
-                                      className="rounded text-blue-600 focus:ring-blue-500"
-                                  />
-                                  <span className="text-sm text-gray-700">{role}</span>
-                              </label>
-                          ))}
-                        </div>
-                      )}
+
+                      <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">调整原因</label>
+                          <div className="text-xs text-gray-400 mb-2">“请简要说明变更原因（选填）”</div>
+                          <textarea 
+                              className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                              rows={2}
+                              placeholder="请输入变更原因..."
+                          />
+                      </div>
                   </div>
                   <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                       <button onClick={() => setIsBatchInterviewerModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium">取消</button>
-                      <button onClick={submitBatchInterviewer} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm">确认更换</button>
+                      <button onClick={submitBatchInterviewer} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 shadow-sm">确认变更</button>
                   </div>
               </div>
           </div>
@@ -1159,28 +1253,34 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
                       <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
                           <AlertTriangle size={20} />
                       </div>
-                      <h3 className="text-lg font-bold text-gray-900">批量取消面谈</h3>
+                      <h3 className="text-lg font-bold text-gray-900">取消面谈任务</h3>
                   </div>
 
-                  <div className="bg-red-50 border border-red-100 rounded-lg p-4 mb-6">
-                      <div className="flex items-center text-sm text-red-800">
-                          <AlertCircle size={16} className="mr-2" />
-                          <span>即将取消 <span className="font-bold">{interviewSelectedIds.size}</span> 条面谈任务</span>
+                  <div className="bg-red-50 border border-red-100 rounded-lg p-4 mb-4">
+                      <div className="flex items-start text-sm text-red-800 mb-2">
+                          <AlertCircle size={16} className="mr-2 mt-0.5 shrink-0" />
+                          <span>确定要取消以下 <span className="font-bold text-red-900">{interviewSelectedIds.size}</span> 项面谈任务吗？</span>
+                      </div>
+                      {renderSelectedItemsSummary("涉及人员：", "text-xs text-red-700/80 ml-6 mb-3")}
+                      
+                      <div className="text-xs text-red-600 mt-2 pt-2 border-t border-red-100/50">
+                          取消后，相关待办将从面谈官及员工的列表中移除，流程将提前终止。
                       </div>
                   </div>
 
                   <div className="space-y-4 mb-6">
                       <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">取消原因 <span className="text-red-500">*</span></label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1"><span className="text-red-500 mr-1">*</span>取消原因</label>
+                          <div className="text-xs text-gray-400 mb-2">请填写取消原因，以便相关人员知晓（必填）</div>
                           <textarea 
                               className="w-full border border-gray-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
                               rows={3}
-                              placeholder="请输入取消原因（2-200字）..."
+                              placeholder="请输入取消原因..."
                               value={batchCancelReason}
                               onChange={(e) => setBatchCancelReason(e.target.value)}
                           />
                           <div className="text-xs text-gray-400 text-right mt-1">
-                              {batchCancelReason.length}/200
+                              {batchCancelReason.length}/2000
                           </div>
                       </div>
 
@@ -1199,7 +1299,55 @@ const AssessmentList: React.FC<AssessmentListProps> = ({
 
                   <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                       <button onClick={() => setIsBatchCancelModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium">暂不取消</button>
-                      <button onClick={confirmBatchCancel} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 shadow-sm">确认取消</button>
+                      <button 
+                          onClick={confirmBatchCancel} 
+                          className={`px-4 py-2 rounded-lg text-sm font-medium text-white shadow-sm transition-colors ${
+                              batchCancelReason.length >= 2 && batchCancelReason.length <= 2000
+                                  ? 'bg-red-600 hover:bg-red-700'
+                                  : 'bg-red-300 cursor-not-allowed'
+                          }`}
+                          disabled={batchCancelReason.length < 2 || batchCancelReason.length > 2000}
+                      >
+                          确认取消
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {/* --- Batch Delete Modal --- */}
+      {isBatchDeleteModalOpen && (
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center backdrop-blur-sm">
+              <div className="bg-white rounded-lg shadow-xl p-6 w-[450px] animate-in zoom-in-95">
+                  <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
+                          <Trash2 size={20} />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900">删除记录</h3>
+                  </div>
+
+                  <div className="bg-red-50 border border-red-100 rounded-lg p-4 mb-4">
+                      <div className="flex items-start text-sm text-red-800 mb-2">
+                          <AlertTriangle size={16} className="mr-2 mt-0.5 shrink-0" />
+                          <span>确认删除这 <span className="font-bold text-red-900">{interviewSelectedIds.size}</span> 条已取消的记录吗？</span>
+                      </div>
+                      <div className="text-xs text-red-700/80 ml-6 mb-3">
+                          删除后数据将无法恢复。
+                      </div>
+                      {renderSelectedItemsSummary("涉及人员：", "text-xs text-red-700/80 ml-6")}
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+                      <button onClick={() => setIsBatchDeleteModalOpen(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg text-sm font-medium">取消</button>
+                      <button 
+                          onClick={confirmBatchDelete} 
+                          disabled={deleteCountdown > 0}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium text-white shadow-sm transition-all ${
+                              deleteCountdown > 0 ? 'bg-red-300 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 active:scale-95'
+                          }`}
+                      >
+                          {deleteCountdown > 0 ? `确定删除 (${deleteCountdown}s)` : '确定删除'}
+                      </button>
                   </div>
               </div>
           </div>

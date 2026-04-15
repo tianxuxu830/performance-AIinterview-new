@@ -115,6 +115,50 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
   const isBatch = selectedEmployeeIds.length > 1;
   const singleEmployee = selectedEmployeeIds.length === 1 ? MOCK_EMPLOYEES.find(e => e.id === selectedEmployeeIds[0]) : null;
 
+  // Helper to render selected items summary
+  const renderSelectedItemsSummary = () => {
+    if (selectedEmployeeIds.length === 0) return null;
+    
+    const selectedList = MOCK_EMPLOYEES.filter(e => selectedEmployeeIds.includes(e.id));
+    const names = selectedList.map(e => e.name);
+    const n = names.length;
+
+    const renderTag = (name: string, i: number) => (
+      <span key={i} className="px-1.5 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px] font-medium text-gray-700">
+        {name}
+      </span>
+    );
+
+    if (n <= 10) {
+      return (
+        <div className="text-xs text-gray-500 mt-2 px-1 flex flex-wrap gap-1.5 items-center">
+          <span className="font-medium text-gray-700 mr-0.5">已选员工：</span>
+          {names.map((name, i) => renderTag(name, i))}
+        </div>
+      );
+    }
+
+    const displayedNames = names.slice(0, 10);
+    const fullList = names.join('、');
+
+    return (
+      <div className="text-xs text-gray-500 mt-2 px-1 flex flex-wrap gap-1.5 items-center">
+        <span className="font-medium text-gray-700 mr-0.5">已选员工：</span>
+        {displayedNames.map((name, i) => renderTag(name, i))}
+        <div className="relative group">
+          <span className="px-1.5 py-0.5 bg-blue-50 border border-blue-100 rounded text-[10px] font-bold text-blue-600 cursor-help">
+            ...等{n}人
+          </span>
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-gray-900 text-white text-[10px] rounded-lg shadow-xl invisible group-hover:visible z-[100] break-all leading-relaxed text-center">
+            <div className="font-bold mb-1 border-b border-white/10 pb-1">完整名单</div>
+            {fullList}
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -264,6 +308,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
                             )}
                             <ChevronRight size={16} className="text-gray-400 group-hover:text-blue-500" />
                           </div>
+                          {isBatch && renderSelectedItemsSummary()}
                       </div>
                   </div>
 
@@ -370,7 +415,7 @@ const NewInterviewModal: React.FC<NewInterviewModalProps> = ({
               disabled={selectedEmployeeIds.length === 0 || !deadline || !topic}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm transition-colors"
             >
-              {isBatch ? `批量发起 (${selectedEmployeeIds.length})` : '发起任务'}
+              {isBatch ? `确认批量发起 (${selectedEmployeeIds.length}人)` : '确认发起任务'}
             </button>
           </div>
 
